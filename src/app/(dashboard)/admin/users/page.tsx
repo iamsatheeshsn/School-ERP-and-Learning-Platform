@@ -3,8 +3,9 @@ import Link from "next/link";
 import { UsersManagement } from "@/components/dashboard/admin/users/users-management";
 import type { StudentRow } from "@/components/dashboard/admin/students-table";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { db } from "@/lib/db";
+import { cn } from "@/lib/utils";
 import { requireRole } from "@/lib/rbac/guards";
 
 type AdminUsersPageProps = {
@@ -53,8 +54,8 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     }),
     db.studentProfile.findMany({
       include: {
-        user: { select: { name: true, email: true } },
-        class: { select: { name: true, grade: true } },
+        user: { select: { id: true, name: true, email: true } },
+        class: { select: { id: true, name: true, grade: true } },
       },
       orderBy: [{ class: { name: "asc" } }, { rollNo: "asc" }],
     }),
@@ -64,7 +65,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
       orderBy: { name: "asc" },
     }),
     db.parentProfile.findMany({
-      include: { user: { select: { name: true, email: true } } },
+      include: { user: { select: { id: true, name: true, email: true } } },
       orderBy: { user: { name: "asc" } },
     }),
     db.subject.findMany({
@@ -95,6 +96,8 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
 
   const students: StudentRow[] = studentProfiles.map((student) => ({
     id: student.id,
+    userId: student.user.id,
+    classId: student.class.id,
     rollNo: student.rollNo,
     name: student.user.name,
     email: student.user.email,
@@ -108,9 +111,12 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
         title="Users"
         description="Register students, teachers, and parents. Manage classes, subjects, and family links."
         actions={
-          <Button variant="outline" render={<Link href="/admin/students" />}>
+          <Link
+            href="/admin/students"
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
             View students list
-          </Button>
+          </Link>
         }
       />
 
@@ -133,6 +139,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
         }))}
         parentRows={parentProfiles.map((parent) => ({
           id: parent.id,
+          userId: parent.user.id,
           name: parent.user.name,
           email: parent.user.email,
           phone: parent.phone,

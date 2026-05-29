@@ -8,10 +8,21 @@ import { registerUser } from "@/actions/auth";
 import {
   createClass,
   createSubject,
+  deleteClassRecord,
+  deleteParent,
+  deleteStudent,
+  deleteSubjectRecord,
+  deleteTeacher,
   linkParentToStudent,
   unlinkParentFromStudent,
 } from "@/actions/users";
+import {
+  EntityEditDialog,
+  RowActions,
+  type EditTarget,
+} from "@/components/dashboard/admin/users/entity-edit-dialog";
 import { StudentsTable, type StudentRow } from "@/components/dashboard/admin/students-table";
+import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,7 +50,13 @@ type ParentLinkRow = {
   className: string;
 };
 type TeacherRow = { id: string; name: string; email: string };
-type ParentRow = { id: string; name: string; email: string; phone: string | null };
+type ParentRow = {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  phone: string | null;
+};
 type SubjectRow = { id: string; name: string; code: string };
 type ClassRow = {
   id: string;
@@ -48,6 +65,12 @@ type ClassRow = {
   section: string;
   academicYear: string;
   studentCount: number;
+};
+
+type DeleteTarget = {
+  kind: "student" | "teacher" | "parent" | "class" | "subject" | "link";
+  id: string;
+  label: string;
 };
 
 export type UsersManagementProps = {
@@ -94,10 +117,58 @@ export function UsersManagement({
   const router = useRouter();
   const initialTab = isValidTab(defaultTab) ? defaultTab : "students";
   const [tab, setTab] = useState<string>(initialTab);
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [isDeleting, startDeleteTransition] = useTransition();
 
   function onTabChange(value: string) {
     setTab(value);
     router.replace(`/admin/users?tab=${value}`, { scroll: false });
+  }
+
+  function openEdit(target: EditTarget) {
+    setEditTarget(target);
+    setEditOpen(true);
+  }
+
+  function openDelete(target: DeleteTarget) {
+    setDeleteTarget(target);
+  }
+
+  function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    startDeleteTransition(async () => {
+      let result;
+      switch (deleteTarget.kind) {
+        case "student":
+          result = await deleteStudent({ studentProfileId: deleteTarget.id });
+          break;
+        case "teacher":
+          result = await deleteTeacher({ userId: deleteTarget.id });
+          break;
+        case "parent":
+          result = await deleteParent({ parentProfileId: deleteTarget.id });
+          break;
+        case "class":
+          result = await deleteClassRecord({ id: deleteTarget.id });
+          break;
+        case "subject":
+          result = await deleteSubjectRecord({ id: deleteTarget.id });
+          break;
+        case "link":
+          result = await unlinkParentFromStudent({ linkId: deleteTarget.id });
+          break;
+      }
+
+      if (result.success) {
+        toast.success("Deleted successfully");
+        setDeleteTarget(null);
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    });
   }
 
   return (
@@ -113,7 +184,27 @@ export function UsersManagement({
       <TabsContent value="students" className="space-y-6">
         <RegisterStudentForm classes={classes} />
         {students.length > 0 ? (
-          <StudentsTable data={students} />
+          <StudentsTable
+            data={students}
+            editable
+            onEdit={(student) =>
+              openEdit({
+                kind: "student",
+                studentProfileId: student.id,
+                name: student.name,
+                email: student.email,
+                classId: student.classId ?? classes[0]?.id ?? "",
+                rollNo: student.rollNo,
+              })
+            }
+            onDelete={(student) =>
+              openDelete({
+                kind: "student",
+                id: student.id,
+                label: student.name,
+              })
+            }
+          />
         ) : (
           <EmptyDirectory message="No students enrolled yet." />
         )}
@@ -129,6 +220,25 @@ export function UsersManagement({
             primary: teacher.name,
             secondary: teacher.email,
           }))}
+          onEdit={(id) => {
+            const teacher = teacherRows.find((row) => row.id === id);
+            if (!teacher) return;
+            openEdit({
+              kind: "teacher",
+              userId: teacher.id,
+              name: teacher.name,
+              email: teacher.email,
+            });
+          }}
+          onDelete={(id) => {
+            const teacher = teacherRows.find((row) => row.id === id);
+            if (!teacher) return;
+            openDelete({
+              kind: "teacher",
+              id: teacher.id,
+              label: teacher.name,
+            });
+          }}
         />
       </TabsContent>
 
@@ -144,6 +254,27 @@ export function UsersManagement({
               ? `${parent.email} · ${parent.phone}`
               : parent.email,
           }))}
+          onEdit={(id) => {
+            const parent = parentRows.find((row) => row.id === id);
+            if (!parent) return;
+            openEdit({
+              kind: "parent",
+              parentProfileId: parent.id,
+              userId: parent.userId,
+              name: parent.name,
+              email: parent.email,
+              phone: parent.phone,
+            });
+          }}
+          onDelete={(id) => {
+            const parent = parentRows.find((row) => row.id === id);
+            if (!parent) return;
+            openDelete({
+              kind: "parent",
+              id: parent.id,
+              label: parent.name,
+            });
+          }}
         />
       </TabsContent>
 
@@ -167,6 +298,22 @@ export function UsersManagement({
               secondary: `${cls.academicYear} · ${cls.studentCount} students`,
               badge: `Grade ${cls.grade}-${cls.section}`,
             }))}
+            onEdit={(id) => {
+              const cls = classRows.find((row) => row.id === id);
+              if (!cls) return;
+              openEdit({
+                kind: "class",
+                classId: cls.id,
+                name: cls.name,
+                grade: cls.grade,
+                section: cls.section,
+              });
+            }}
+            onDelete={(id) => {
+              const cls = classRows.find((row) => row.id === id);
+              if (!cls) return;
+              openDelete({ kind: "class", id: cls.id, label: cls.name });
+            }}
           />
           <DirectoryCard
             title="Subjects"
@@ -177,6 +324,22 @@ export function UsersManagement({
               secondary: subject.code,
               badge: subject.code,
             }))}
+            onEdit={(id) => {
+              const subject = subjectRows.find((row) => row.id === id);
+              if (!subject) return;
+              openEdit({
+                kind: "subject",
+                subjectId: subject.id,
+                schoolId,
+                name: subject.name,
+                code: subject.code,
+              });
+            }}
+            onDelete={(id) => {
+              const subject = subjectRows.find((row) => row.id === id);
+              if (!subject) return;
+              openDelete({ kind: "subject", id: subject.id, label: subject.name });
+            }}
           />
         </div>
       </TabsContent>
@@ -188,8 +351,46 @@ export function UsersManagement({
           defaultParentId={parents[0]?.id ?? ""}
           defaultStudentId={studentOptions[0]?.id ?? ""}
         />
-        <ParentLinksList links={parentLinks} />
+        <ParentLinksList
+          links={parentLinks}
+          onEdit={(link) =>
+            openEdit({
+              kind: "link",
+              linkId: link.id,
+              relation: link.relation,
+            })
+          }
+          onDelete={(link) =>
+            openDelete({
+              kind: "link",
+              id: link.id,
+              label: `${link.parentName} → ${link.studentName}`,
+            })
+          }
+        />
       </TabsContent>
+
+      <EntityEditDialog
+        target={editTarget}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        classes={classes}
+        schoolId={schoolId}
+        onSaved={() => router.refresh()}
+      />
+
+      <ConfirmDeleteDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={`Delete ${deleteTarget?.kind ?? "record"}?`}
+        description={
+          deleteTarget
+            ? `This will permanently remove ${deleteTarget.label}. This action cannot be undone.`
+            : ""
+        }
+        isPending={isDeleting}
+        onConfirm={handleDeleteConfirm}
+      />
     </Tabs>
   );
 }
@@ -208,10 +409,14 @@ function DirectoryCard({
   title,
   emptyMessage,
   rows,
+  onEdit,
+  onDelete,
 }: {
   title: string;
   emptyMessage: string;
   rows: { id: string; primary: string; secondary: string; badge?: string }[];
+  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }) {
   return (
     <Card className="rounded-2xl border-white/20 bg-card/80 backdrop-blur-sm">
@@ -228,11 +433,19 @@ function DirectoryCard({
                 key={row.id}
                 className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-background/50 p-3"
               >
-                <div className="min-w-0 space-y-0.5">
+                <div className="min-w-0 flex-1 space-y-0.5">
                   <p className="truncate font-medium">{row.primary}</p>
                   <p className="truncate text-sm text-muted-foreground">{row.secondary}</p>
                 </div>
-                {row.badge && <Badge variant="secondary">{row.badge}</Badge>}
+                <div className="flex shrink-0 items-center gap-2">
+                  {row.badge && <Badge variant="secondary">{row.badge}</Badge>}
+                  {onEdit && onDelete && (
+                    <RowActions
+                      onEdit={() => onEdit(row.id)}
+                      onDelete={() => onDelete(row.id)}
+                    />
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -754,22 +967,15 @@ function LinkParentForm({
   );
 }
 
-function ParentLinksList({ links }: { links: ParentLinkRow[] }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  function handleRemove(linkId: string) {
-    startTransition(async () => {
-      const result = await unlinkParentFromStudent({ linkId });
-      if (result.success) {
-        toast.success("Link removed");
-        router.refresh();
-      } else {
-        toast.error(result.error);
-      }
-    });
-  }
-
+function ParentLinksList({
+  links,
+  onEdit,
+  onDelete,
+}: {
+  links: ParentLinkRow[];
+  onEdit: (link: ParentLinkRow) => void;
+  onDelete: (link: ParentLinkRow) => void;
+}) {
   return (
     <Card className="rounded-2xl border-white/20 bg-card/80 backdrop-blur-sm">
       <CardHeader>
@@ -797,15 +1003,10 @@ function ParentLinksList({ links }: { links: ParentLinkRow[] }) {
                     {link.parentEmail} · {link.className}
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isPending}
-                  onClick={() => handleRemove(link.id)}
-                >
-                  Remove
-                </Button>
+                <RowActions
+                  onEdit={() => onEdit(link)}
+                  onDelete={() => onDelete(link)}
+                />
               </div>
             ))}
           </div>

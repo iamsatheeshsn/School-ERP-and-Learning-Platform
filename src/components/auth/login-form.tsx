@@ -91,7 +91,7 @@ export function LoginForm({ className }: LoginFormProps) {
         />
       </div>
 
-      <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+      <Button type="submit" size="lg" className="w-full gap-2" disabled={isLoading}>
         {isLoading && <LoadingSpinner size="sm" />}
         {isLoading ? "Signing in..." : "Sign in"}
       </Button>
