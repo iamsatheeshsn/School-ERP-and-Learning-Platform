@@ -4,8 +4,9 @@ import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { writeAuditLog } from "@/lib/audit/log";
 import { AuthError, ForbiddenError, requireRole } from "@/lib/rbac/guards";
-import { ok, fail, type ActionResult } from "@/lib/types";
+import { ok, fail, type ActionResult, type SessionUser } from "@/lib/types";
 
 const createClassSchema = z.object({
   academicYearId: z.string(),
@@ -78,9 +79,27 @@ function revalidateUserPaths() {
   revalidatePath("/admin/users");
   revalidatePath("/admin/students");
   revalidatePath("/admin/classes");
+  revalidatePath("/admin/audit-log");
   revalidatePath("/parent/dashboard");
   revalidatePath("/teacher/dashboard");
   revalidatePath("/student/dashboard");
+}
+
+async function auditAdmin(
+  admin: SessionUser,
+  action: "CREATE" | "UPDATE" | "DELETE",
+  entity: string,
+  summary: string,
+  entityId?: string
+) {
+  await writeAuditLog({
+    actorId: admin.id,
+    actorName: admin.name,
+    action,
+    entity,
+    entityId,
+    summary,
+  });
 }
 
 async function assertEmailAvailable(email: string, excludeUserId?: string) {
@@ -108,7 +127,7 @@ export async function createClass(
   input: z.infer<typeof createClassSchema>
 ): Promise<ActionResult<{ id: string; name: string }>> {
   try {
-    await requireRole(Role.ADMIN);
+    const admin = await requireRole(Role.ADMIN);
     const parsed = createClassSchema.safeParse(input);
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -147,6 +166,7 @@ export async function createClass(
     });
 
     revalidateUserPaths();
+    await auditAdmin(admin, "CREATE", "Class", `Created class ${created.name}`, created.id);
     return ok({ id: created.id, name: created.name });
   } catch (error) {
     return handleError(error);
@@ -267,7 +287,7 @@ export async function updateStudent(
   input: z.infer<typeof updateStudentSchema>
 ): Promise<ActionResult<void>> {
   try {
-    await requireRole(Role.ADMIN);
+    const admin = await requireRole(Role.ADMIN);
     const parsed = updateStudentSchema.safeParse(input);
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? "Invalid input");
@@ -311,6 +331,13 @@ export async function updateStudent(
     ]);
 
     revalidateUserPaths();
+    await auditAdmin(
+      admin,
+      "UPDATE",
+      "Student",
+      `Updated student ${parsed.data.name.trim()}`,
+      parsed.data.studentProfileId
+    );
     return ok(undefined);
   } catch (error) {
     return handleError(error);
@@ -331,6 +358,7 @@ export async function deleteStudent(input: {
 
     await db.user.delete({ where: { id: profile.userId } });
     revalidateUserPaths();
+    await auditAdmin(admin, "DELETE", "Student", "Deleted student profile", input.studentProfileId);
     return ok(undefined);
   } catch (error) {
     return fail(prismaDeleteMessage(error));

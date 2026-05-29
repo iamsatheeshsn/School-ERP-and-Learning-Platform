@@ -63,6 +63,7 @@ export function StudentsTable({
       data={data}
       searchKey="name"
       searchPlaceholder="Search students..."
+      pageSize={15}
     />
   );
 }

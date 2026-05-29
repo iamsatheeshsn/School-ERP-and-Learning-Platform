@@ -21,6 +21,8 @@ import {
   RowActions,
   type EditTarget,
 } from "@/components/dashboard/admin/users/entity-edit-dialog";
+import { BulkImportPanel } from "@/components/dashboard/admin/bulk-import-panel";
+import { StudentPromotionPanel } from "@/components/dashboard/admin/student-promotion-panel";
 import { StudentsTable, type StudentRow } from "@/components/dashboard/admin/students-table";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -94,6 +96,8 @@ const TAB_VALUES = [
   "parents",
   "classes",
   "links",
+  "import",
+  "promotion",
 ] as const;
 
 function isValidTab(tab: string): tab is (typeof TAB_VALUES)[number] {
@@ -179,6 +183,8 @@ export function UsersManagement({
         <TabsTrigger value="parents">Parents</TabsTrigger>
         <TabsTrigger value="classes">Classes & Subjects</TabsTrigger>
         <TabsTrigger value="links">Parent Links</TabsTrigger>
+        <TabsTrigger value="import">Bulk import</TabsTrigger>
+        <TabsTrigger value="promotion">Promotion</TabsTrigger>
       </TabsList>
 
       <TabsContent value="students" className="space-y-6">
@@ -190,6 +196,7 @@ export function UsersManagement({
             onEdit={(student) =>
               openEdit({
                 kind: "student",
+                userId: student.userId ?? "",
                 studentProfileId: student.id,
                 name: student.name,
                 email: student.email,
@@ -367,6 +374,16 @@ export function UsersManagement({
               label: `${link.parentName} → ${link.studentName}`,
             })
           }
+        />
+      </TabsContent>
+
+      <TabsContent value="import" className="space-y-6">
+        <BulkImportPanel />
+      </TabsContent>
+
+      <TabsContent value="promotion" className="space-y-6">
+        <StudentPromotionPanel
+          classes={classes.map((c) => ({ id: c.id, name: c.name }))}
         />
       </TabsContent>
 

@@ -1,6 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { Role } from "@prisma/client";
 import { useTheme } from "@/components/layout/theme-provider";
 import {
   LogOut,
@@ -9,7 +11,6 @@ import {
   Sun,
   User,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,8 +23,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { ROLE_ROUTES } from "@/lib/rbac/permissions";
 import { cn } from "@/lib/utils";
-import type { Role } from "@prisma/client";
 
 type DashboardHeaderProps = {
   userName?: string | null;
@@ -106,11 +107,19 @@ export function DashboardHeader({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/profile")}>
                 <User className="size-4" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  router.push(
+                    userRole === Role.ADMIN
+                      ? `${ROLE_ROUTES.ADMIN}/settings`
+                      : "/profile#password"
+                  )
+                }
+              >
                 <Settings className="size-4" />
                 Settings
               </DropdownMenuItem>

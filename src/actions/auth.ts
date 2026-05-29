@@ -163,3 +163,90 @@ export async function getCurrentUser(): Promise<
     return handleError(error);
   }
 }
+
+const updateProfileSchema = z.object({
+  name: z.string().min(2),
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(6),
+  newPassword: z.string().min(6),
+});
+
+const adminResetPasswordSchema = z.object({
+  userId: z.string(),
+  newPassword: z.string().min(6),
+});
+
+export async function updateProfile(
+  input: z.infer<typeof updateProfileSchema>
+): Promise<ActionResult<void>> {
+  try {
+    const user = await requireAuth();
+    const parsed = updateProfileSchema.safeParse(input);
+    if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
+
+    await db.user.update({
+      where: { id: user.id },
+      data: { name: parsed.data.name.trim() },
+    });
+
+    revalidatePath("/profile");
+    return ok(undefined);
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+export async function changePassword(
+  input: z.infer<typeof changePasswordSchema>
+): Promise<ActionResult<void>> {
+  try {
+    const sessionUser = await requireAuth();
+    const parsed = changePasswordSchema.safeParse(input);
+    if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
+
+    const user = await db.user.findUnique({
+      where: { id: sessionUser.id },
+      select: { hashedPassword: true },
+    });
+    if (!user) return fail("User not found");
+
+    const valid = await bcrypt.compare(parsed.data.currentPassword, user.hashedPassword);
+    if (!valid) return fail("Current password is incorrect");
+
+    await db.user.update({
+      where: { id: sessionUser.id },
+      data: { hashedPassword: await bcrypt.hash(parsed.data.newPassword, 10) },
+    });
+
+    return ok(undefined);
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+export async function adminResetPassword(
+  input: z.infer<typeof adminResetPasswordSchema>
+): Promise<ActionResult<void>> {
+  try {
+    const admin = await requireRole(Role.ADMIN);
+    const parsed = adminResetPasswordSchema.safeParse(input);
+    if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
+    if (parsed.data.userId === admin.id) {
+      return fail("Use change password for your own account");
+    }
+
+    const user = await db.user.findUnique({ where: { id: parsed.data.userId } });
+    if (!user) return fail("User not found");
+
+    await db.user.update({
+      where: { id: parsed.data.userId },
+      data: { hashedPassword: await bcrypt.hash(parsed.data.newPassword, 10) },
+    });
+
+    return ok(undefined);
+  } catch (error) {
+    return handleError(error);
+  }
+}

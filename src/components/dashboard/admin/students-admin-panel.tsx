@@ -48,6 +48,7 @@ export function StudentsAdminPanel({ students, classes }: StudentsAdminPanelProp
         onEdit={(student) => {
           setEditTarget({
             kind: "student",
+            userId: student.userId ?? "",
             studentProfileId: student.id,
             name: student.name,
             email: student.email,

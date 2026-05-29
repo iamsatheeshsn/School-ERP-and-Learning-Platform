@@ -22,6 +22,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -148,11 +155,28 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between gap-4 px-1">
-        <p className="text-sm text-muted-foreground">
-          Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount() || 1}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4 px-1">
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            {table.getFilteredRowModel().rows.length} row(s) · Page{" "}
+            {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
+          </p>
+          <Select
+            value={String(table.getState().pagination.pageSize)}
+            onValueChange={(v) => v && table.setPageSize(Number(v))}
+          >
+            <SelectTrigger className="h-8 w-[110px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[10, 15, 20, 30, 50].map((size) => (
+                <SelectItem key={size} value={String(size)}>
+                  {size} / page
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"

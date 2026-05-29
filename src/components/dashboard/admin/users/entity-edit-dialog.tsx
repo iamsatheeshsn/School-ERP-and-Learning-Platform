@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { adminResetPassword } from "@/actions/auth";
 import {
   updateClassRecord,
   updateParent,
@@ -33,6 +34,7 @@ type ClassOption = { id: string; name: string };
 export type EditTarget =
   | {
       kind: "student";
+      userId: string;
       studentProfileId: string;
       name: string;
       email: string;
@@ -75,7 +77,6 @@ export function EntityEditDialog({
   schoolId,
   onSaved,
 }: EntityEditDialogProps) {
-  const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -85,6 +86,9 @@ export function EntityEditDialog({
   const [section, setSection] = useState("A");
   const [code, setCode] = useState("");
   const [relation, setRelation] = useState("Father");
+  const [resetPassword, setResetPassword] = useState("");
+  const [isResetPending, startResetTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!target) return;
@@ -167,6 +171,31 @@ export function EntityEditDialog({
       }
     });
   }
+
+  function handleResetPassword() {
+    if (!target || !("userId" in target)) return;
+    if (resetPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    startResetTransition(async () => {
+      const result = await adminResetPassword({
+        userId: target.userId,
+        newPassword: resetPassword,
+      });
+      if (result.success) {
+        toast.success("Password reset");
+        setResetPassword("");
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  const showReset =
+    target?.kind === "student" ||
+    target?.kind === "teacher" ||
+    target?.kind === "parent";
 
   const title =
     target?.kind === "student"
@@ -320,6 +349,31 @@ export function EntityEditDialog({
                 </SelectContent>
               </Select>
             </Field>
+          )}
+
+          {showReset && (
+            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/30 p-3">
+              <Label htmlFor="reset-password">Admin reset password</Label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  id="reset-password"
+                  type="password"
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  placeholder="New password (min 6 chars)"
+                  minLength={6}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isResetPending}
+                  onClick={handleResetPassword}
+                >
+                  {isResetPending ? "Resetting..." : "Reset password"}
+                </Button>
+              </div>
+            </div>
           )}
 
           </form>

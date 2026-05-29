@@ -46,6 +46,7 @@ export function InvoicesTable({ data }: InvoicesTableProps) {
       data={data}
       searchKey="student"
       searchPlaceholder="Search by student..."
+      pageSize={15}
     />
   );
 }

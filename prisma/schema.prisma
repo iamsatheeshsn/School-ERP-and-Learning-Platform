@@ -131,6 +131,7 @@ model Class {
   attendance    Attendance[]
   feeStructures FeeStructure[]
   teacherClasses TeacherClass[]
+  timetablePeriods TimetablePeriod[]
 
   @@unique([academicYearId, grade, section])
   @@index([academicYearId])
@@ -148,6 +149,7 @@ model Subject {
   homework        Homework[]
   grades          Grade[]
   teacherSubjects TeacherSubject[]
+  timetablePeriods TimetablePeriod[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -187,6 +189,7 @@ model TeacherProfile {
   classes         TeacherClass[]
   subjects        TeacherSubject[]
   messageThreads  MessageThread[]  @relation("ThreadTeacher")
+  timetablePeriods TimetablePeriod[]
 }
 
 model ParentProfile {
@@ -469,4 +472,40 @@ model Broadcast {
   createdAt   DateTime @default(now())
 
   @@index([scope, scopeId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  actorName String
+  action    String
+  entity    String
+  entityId  String?
+  summary   String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entity, createdAt])
+  @@index([createdAt])
+}
+
+model TimetablePeriod {
+  id        String   @id @default(cuid())
+  classId   String
+  subjectId String
+  teacherId String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  room      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  class   Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([classId, dayOfWeek])
+  @@index([teacherId])
 }
