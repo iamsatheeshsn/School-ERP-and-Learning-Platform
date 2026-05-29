@@ -1,0 +1,472 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  PARENT
+  STUDENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum HomeworkSubmissionStatus {
+  PENDING
+  SUBMITTED
+  GRADED
+  RETURNED
+}
+
+enum FeeInvoiceStatus {
+  PAID
+  PENDING
+  OVERDUE
+}
+
+enum ReportCardStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+}
+
+enum NotificationType {
+  ATTENDANCE_ALERT
+  HOMEWORK
+  FEE_REMINDER
+  MESSAGE
+  BROADCAST
+  REPORT_CARD
+  GENERAL
+}
+
+enum ExamType {
+  UNIT_TEST
+  MIDTERM
+  FINAL
+  QUIZ
+  ASSIGNMENT
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  hashedPassword String
+  role           Role
+  avatar         String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+  parentProfile  ParentProfile?
+
+  homeworkCreated      Homework[]           @relation("HomeworkCreator")
+  attendanceMarked     Attendance[]         @relation("AttendanceMarker")
+  messagesSent         Message[]            @relation("MessageSender")
+  messagesReceived     Message[]            @relation("MessageReceiver")
+  notifications        Notification[]
+  homeworkTutorSessions HomeworkTutorSession[]
+
+  @@index([role])
+  @@index([email])
+}
+
+model School {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  logoUrl   String?
+  phone     String?
+  email     String?
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  academicYears AcademicYear[]
+  subjects      Subject[]
+}
+
+model AcademicYear {
+  id        String   @id @default(cuid())
+  schoolId  String
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes     Class[]
+  reportCards ReportCard[]
+
+  @@index([schoolId])
+}
+
+model Class {
+  id             String   @id @default(cuid())
+  academicYearId String
+  grade          Int
+  section        String
+  name           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  academicYear  AcademicYear   @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  students      StudentProfile[]
+  homework      Homework[]
+  attendance    Attendance[]
+  feeStructures FeeStructure[]
+  teacherClasses TeacherClass[]
+
+  @@unique([academicYearId, grade, section])
+  @@index([academicYearId])
+}
+
+model Subject {
+  id        String   @id @default(cuid())
+  schoolId  String
+  name      String
+  code      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school          School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  homework        Homework[]
+  grades          Grade[]
+  teacherSubjects TeacherSubject[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+}
+
+model StudentProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  classId       String
+  rollNo        String
+  admissionDate DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class        Class             @relation(fields: [classId], references: [id])
+  parents      ParentStudent[]
+  attendance   Attendance[]
+  submissions  HomeworkSubmission[]
+  grades       Grade[]
+  reportCards  ReportCard[]
+  feeInvoices  FeeInvoice[]
+  tutorSessions HomeworkTutorSession[]
+  messageThreads MessageThread[]
+
+  @@unique([classId, rollNo])
+  @@index([classId])
+}
+
+model TeacherProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classes         TeacherClass[]
+  subjects        TeacherSubject[]
+  messageThreads  MessageThread[]  @relation("ThreadTeacher")
+}
+
+model ParentProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  children ParentStudent[]
+  messageThreads MessageThread[] @relation("ThreadParent")
+}
+
+model ParentStudent {
+  id        String   @id @default(cuid())
+  parentId  String
+  studentId String
+  relation  String   @default("Parent")
+  createdAt DateTime @default(now())
+
+  parent  ParentProfile  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, studentId])
+  @@index([studentId])
+}
+
+model TeacherClass {
+  id        String   @id @default(cuid())
+  teacherId String
+  classId   String
+  createdAt DateTime @default(now())
+
+  teacher TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class   Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, classId])
+}
+
+model TeacherSubject {
+  id        String   @id @default(cuid())
+  teacherId String
+  subjectId String
+  createdAt DateTime @default(now())
+
+  teacher TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, subjectId])
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  studentId String
+  classId   String
+  date      DateTime         @db.Date
+  status    AttendanceStatus
+  markedBy  String
+  notes     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  marker  User           @relation("AttendanceMarker", fields: [markedBy], references: [id])
+
+  @@unique([studentId, date])
+  @@index([classId, date])
+  @@index([studentId])
+}
+
+model Homework {
+  id          String   @id @default(cuid())
+  classId     String
+  subjectId   String
+  title       String
+  description String   @db.Text
+  dueDate     DateTime
+  attachments Json     @default("[]")
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  class       Class                @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject     Subject              @relation(fields: [subjectId], references: [id])
+  creator     User                 @relation("HomeworkCreator", fields: [createdBy], references: [id])
+  submissions HomeworkSubmission[]
+  tutorSessions HomeworkTutorSession[]
+
+  @@index([classId])
+  @@index([dueDate])
+}
+
+model HomeworkSubmission {
+  id           String                   @id @default(cuid())
+  homeworkId   String
+  studentId    String
+  content      String?                  @db.Text
+  attachments  Json                     @default("[]")
+  submittedAt  DateTime?
+  aiFeedback   Json?
+  grade        Float?
+  maxGrade     Float                    @default(100)
+  status       HomeworkSubmissionStatus @default(PENDING)
+  teacherNotes String?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  homework Homework       @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  student  StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([homeworkId, studentId])
+  @@index([studentId])
+}
+
+model HomeworkTutorSession {
+  id         String   @id @default(cuid())
+  homeworkId String
+  studentId  String
+  userId     String
+  messages   Json     @default("[]")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  homework Homework       @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  student  StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([homeworkId, studentId])
+}
+
+model Grade {
+  id        String   @id @default(cuid())
+  studentId String
+  subjectId String
+  term      String
+  score     Float
+  maxScore  Float    @default(100)
+  examType  ExamType
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject        @relation(fields: [subjectId], references: [id])
+
+  @@index([studentId, term])
+  @@index([subjectId])
+}
+
+model ReportCard {
+  id             String           @id @default(cuid())
+  studentId      String
+  academicYearId String
+  term           String
+  aiSummary      String?          @db.Text
+  subjectGrades  Json             @default("[]")
+  teacherRemarks String?          @db.Text
+  pdfUrl         String?
+  status         ReportCardStatus @default(DRAFT)
+  publishedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear   @relation(fields: [academicYearId], references: [id])
+
+  @@unique([studentId, academicYearId, term])
+  @@index([studentId])
+}
+
+model FeeStructure {
+  id          String   @id @default(cuid())
+  classId     String
+  name        String
+  items       Json
+  totalAmount Float
+  dueDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  class    Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  invoices FeeInvoice[]
+
+  @@index([classId])
+}
+
+model FeeInvoice {
+  id             String           @id @default(cuid())
+  studentId      String
+  feeStructureId String?
+  amount         Float
+  status         FeeInvoiceStatus @default(PENDING)
+  dueDate        DateTime
+  paidAt         DateTime?
+  description    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeStructure FeeStructure?  @relation(fields: [feeStructureId], references: [id])
+  payments     Payment[]
+
+  @@index([studentId])
+  @@index([status])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  invoiceId       String
+  amount          Float
+  transactionRef  String
+  gateway         String   @default("razorpay")
+  method          String?
+  createdAt       DateTime @default(now())
+
+  invoice FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model MessageThread {
+  id        String   @id @default(cuid())
+  studentId String
+  teacherId String
+  parentId  String
+  subject   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student  StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher  TeacherProfile @relation("ThreadTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  parent   ParentProfile  @relation("ThreadParent", fields: [parentId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([studentId, teacherId, parentId])
+  @@index([studentId])
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  threadId    String
+  senderId    String
+  receiverId  String
+  body        String    @db.Text
+  attachments Json      @default("[]")
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  thread   MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender   User          @relation("MessageSender", fields: [senderId], references: [id])
+  receiver User          @relation("MessageReceiver", fields: [receiverId], references: [id])
+
+  @@index([threadId])
+  @@index([receiverId, readAt])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  payload   Json             @default("{}")
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+model Broadcast {
+  id          String   @id @default(cuid())
+  title       String
+  body        String   @db.Text
+  scope       String
+  scopeId     String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  @@index([scope, scopeId])
+}
