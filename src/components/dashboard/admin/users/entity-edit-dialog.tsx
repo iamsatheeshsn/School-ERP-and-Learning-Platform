@@ -185,11 +185,12 @@ export function EntityEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+        <div className="p-4 pr-12">
+          <DialogHeader className="mb-4">
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+          <form id="entity-edit-form" onSubmit={handleSubmit} className="space-y-4">
           {(target?.kind === "student" ||
             target?.kind === "teacher" ||
             target?.kind === "parent") && (
@@ -321,20 +322,22 @@ export function EntityEditDialog({
             </Field>
           )}
 
-          <DialogFooter className="border-t-0 bg-transparent p-0 pt-2 sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isPending}
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving..." : "Save changes"}
-            </Button>
-          </DialogFooter>
-        </form>
+          </form>
+        </div>
+        <DialogFooter className="rounded-none border-t bg-muted/30 px-4 py-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isPending}
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" form="entity-edit-form" size="sm" disabled={isPending}>
+            {isPending ? "Saving..." : "Save changes"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

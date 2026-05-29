@@ -31,15 +31,18 @@ export function ConfirmDeleteDialog({
 }: ConfirmDeleteDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="border-t-0 bg-transparent p-0 pt-2 sm:justify-end">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+        <div className="space-y-2 p-4 pr-12">
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+        </div>
+        <DialogFooter className="rounded-none border-t bg-muted/30 px-4 py-3">
           <Button
             type="button"
             variant="outline"
+            size="sm"
             disabled={isPending}
             onClick={() => onOpenChange(false)}
           >
@@ -48,6 +51,7 @@ export function ConfirmDeleteDialog({
           <Button
             type="button"
             variant="destructive"
+            size="sm"
             disabled={isPending}
             onClick={onConfirm}
           >
