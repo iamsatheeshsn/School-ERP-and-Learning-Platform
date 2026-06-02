@@ -1,6 +1,6 @@
 "use server";
 
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { AuthError, ForbiddenError, requireRole } from "@/lib/rbac/guards";

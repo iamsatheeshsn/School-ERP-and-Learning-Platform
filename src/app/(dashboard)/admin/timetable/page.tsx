@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { TimetableManager } from "@/components/dashboard/admin/timetable-manager";
 import { PageHeader } from "@/components/shared/page-header";
 import { db } from "@/lib/db";

@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { BarChart3 } from "lucide-react";
 import {
   generateClassInsights,

@@ -1,6 +1,6 @@
 "use server";
 
-import { FeeInvoiceStatus, Role } from "@prisma/client";
+import { FeeInvoiceStatus, Role } from "@/lib/types/enums";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";

@@ -1,1 +1,1 @@
-export { auth, signIn, signOut, handlers } from "@/lib/auth/config";
+export { auth, signOut } from "@/lib/auth/server";

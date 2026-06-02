@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { Wallet } from "lucide-react";
 import { getInvoicesForParent } from "@/actions/fees";
 import { ParentFeesPanel } from "@/components/dashboard/parent/fees-panel";

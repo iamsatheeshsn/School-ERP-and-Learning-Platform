@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import Link from "next/link";
 import { UsersManagement } from "@/components/dashboard/admin/users/users-management";
 import type { StudentRow } from "@/components/dashboard/admin/students-table";
@@ -154,14 +154,21 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
           academicYear: cls.academicYear.name,
           studentCount: cls._count.students,
         }))}
-        parentLinks={parentLinks.map((link) => ({
-          id: link.id,
-          relation: link.relation,
-          parentName: link.parent.user.name,
-          parentEmail: link.parent.user.email,
-          studentName: link.student.user.name,
-          className: link.student.class.name,
-        }))}
+        parentLinks={parentLinks
+          .filter(
+            (link) =>
+              link.parent?.user?.name &&
+              link.student?.user?.name &&
+              link.student?.class?.name
+          )
+          .map((link) => ({
+            id: link.id,
+            relation: link.relation,
+            parentName: link.parent.user.name,
+            parentEmail: link.parent.user.email,
+            studentName: link.student.user.name,
+            className: link.student.class.name,
+          }))}
       />
     </div>
   );

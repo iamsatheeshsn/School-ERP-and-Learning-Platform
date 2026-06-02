@@ -218,7 +218,7 @@ export function HomeworkManager({
                 />
               </div>
               <FileUploadField
-                endpoint="homeworkAttachment"
+                folder="homework"
                 attachments={attachments}
                 onChange={setAttachments}
                 label="Assignment files (PDF, images)"

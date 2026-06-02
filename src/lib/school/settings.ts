@@ -1,5 +1,3 @@
-import { Prisma } from "@prisma/client";
-
 export type NotificationSettings = {
   emailEnabled: boolean;
   attendanceAlerts: boolean;
@@ -57,7 +55,7 @@ export function parseNotificationSettings(raw: unknown): NotificationSettings {
 export function mergeSchoolSettings(
   current: unknown,
   notifications: NotificationSettings
-): Prisma.InputJsonObject {
+): Record<string, unknown> {
   const base =
     current && typeof current === "object" && !Array.isArray(current)
       ? { ...(current as Record<string, unknown>) }
@@ -108,12 +106,10 @@ export function getIntegrationStatuses(): IntegrationStatus[] {
       configured: envConfigured(process.env.RESEND_API_KEY, ["re_..."]),
     },
     {
-      id: "uploadthing",
-      name: "UploadThing",
+      id: "firebase-storage",
+      name: "Firebase Storage",
       description: "File uploads for messages and homework",
-      configured: envConfigured(process.env.UPLOADTHING_TOKEN, [
-        "your-uploadthing-v7-token",
-      ]),
+      configured: envConfigured(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET, []),
     },
     {
       id: "razorpay",

@@ -1,5 +1,7 @@
+import "dotenv/config";
+import { config } from "dotenv";
+import { subDays, addDays } from "date-fns";
 import {
-  PrismaClient,
   Role,
   AttendanceStatus,
   HomeworkSubmissionStatus,
@@ -7,13 +9,52 @@ import {
   ReportCardStatus,
   ExamType,
   NotificationType,
-} from "@prisma/client";
-import bcrypt from "bcryptjs";
-import { subDays, addDays } from "date-fns";
+} from "../src/lib/types/enums";
+import { deleteAllCollections, db } from "../src/lib/db";
+import { buildSessionUser, setCustomClaimsForUser } from "../src/lib/auth/session";
+import { getAdminAuth } from "../src/lib/firebase/admin";
+import { dateKey } from "../src/lib/db/helpers";
 
-const db = new PrismaClient();
+config({ path: ".env.local" });
+config({ path: ".env" });
+
 const PASSWORD = "password123";
-const hash = () => bcrypt.hash(PASSWORD, 10);
+
+function authSetupHelp(): string {
+  const projectId =
+    process.env.FIREBASE_ADMIN_PROJECT_ID ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+    "your-project";
+  return [
+    "Firebase Authentication is not set up for this project.",
+    "",
+    "In Firebase Console (https://console.firebase.google.com):",
+    `  1. Open project: ${projectId}`,
+    "  2. Build → Authentication → Get started (if you see it)",
+    "  3. Sign-in method → Email/Password → Enable → Save",
+    "  4. Re-run: npm run db:seed",
+  ].join("\n");
+}
+
+function isAuthNotConfigured(error: unknown): boolean {
+  const err = error as { code?: string; errorInfo?: { code?: string } };
+  return (
+    err.code === "auth/configuration-not-found" ||
+    err.errorInfo?.code === "auth/configuration-not-found"
+  );
+}
+
+async function assertFirebaseAuthReady() {
+  try {
+    await getAdminAuth().listUsers(1);
+  } catch (error) {
+    if (isAuthNotConfigured(error)) {
+      console.error("\n" + authSetupHelp() + "\n");
+      process.exit(1);
+    }
+    throw error;
+  }
+}
 
 const FIRST_NAMES = [
   "Aarav", "Vihaan", "Ananya", "Diya", "Arjun", "Isha", "Rohan", "Priya",
@@ -22,35 +63,50 @@ const FIRST_NAMES = [
   "Varun", "Simran", "Harsh", "Neha", "Yash", "Ira",
 ];
 
+async function clearAuthUsers() {
+  const auth = getAdminAuth();
+  let pageToken: string | undefined;
+  try {
+    do {
+      const result = await auth.listUsers(1000, pageToken);
+      for (const user of result.users) {
+        await auth.deleteUser(user.uid);
+      }
+      pageToken = result.pageToken;
+    } while (pageToken);
+  } catch (error) {
+    if (isAuthNotConfigured(error)) {
+      console.warn("Skipping Auth user cleanup — Authentication not enabled yet.");
+      return;
+    }
+    throw error;
+  }
+}
+
+async function createAuthUser(email: string, name: string, uid?: string) {
+  const auth = getAdminAuth();
+  try {
+    if (uid) {
+      return auth.createUser({ uid, email, password: PASSWORD, displayName: name });
+    }
+    return auth.createUser({ email, password: PASSWORD, displayName: name });
+  } catch (error) {
+    const err = error as { code?: string };
+    if (err.code === "auth/email-already-exists") {
+      const existing = await auth.getUserByEmail(email);
+      await auth.updateUser(existing.uid, { password: PASSWORD, displayName: name });
+      return existing;
+    }
+    throw error;
+  }
+}
+
 async function main() {
-  console.log("🌱 Seeding ScholarOS database...");
+  console.log("🌱 Seeding ScholarOS Firebase database...");
 
-  await db.notification.deleteMany();
-  await db.message.deleteMany();
-  await db.messageThread.deleteMany();
-  await db.broadcast.deleteMany();
-  await db.payment.deleteMany();
-  await db.feeInvoice.deleteMany();
-  await db.feeStructure.deleteMany();
-  await db.reportCard.deleteMany();
-  await db.grade.deleteMany();
-  await db.homeworkTutorSession.deleteMany();
-  await db.homeworkSubmission.deleteMany();
-  await db.homework.deleteMany();
-  await db.attendance.deleteMany();
-  await db.parentStudent.deleteMany();
-  await db.teacherClass.deleteMany();
-  await db.teacherSubject.deleteMany();
-  await db.studentProfile.deleteMany();
-  await db.teacherProfile.deleteMany();
-  await db.parentProfile.deleteMany();
-  await db.user.deleteMany();
-  await db.class.deleteMany();
-  await db.academicYear.deleteMany();
-  await db.subject.deleteMany();
-  await db.school.deleteMany();
-
-  const passwordHash = await hash();
+  await assertFirebaseAuthReady();
+  await clearAuthUsers();
+  await deleteAllCollections();
 
   const school = await db.school.create({
     data: {
@@ -75,7 +131,11 @@ async function main() {
     ["Mathematics", "Science", "English", "Social Studies", "Hindi", "Computer Science"].map(
       (name, i) =>
         db.subject.create({
-          data: { schoolId: school.id, name, code: name.slice(0, 3).toUpperCase() + (i + 1) },
+          data: {
+            schoolId: school.id,
+            name,
+            code: name.slice(0, 3).toUpperCase() + (i + 1),
+          },
         })
     )
   );
@@ -93,54 +153,77 @@ async function main() {
     )
   );
 
+  const adminAuth = await createAuthUser("admin@scholaros.demo", "Admin User");
   const admin = await db.user.create({
     data: {
+      id: adminAuth.uid,
       name: "Admin User",
       email: "admin@scholaros.demo",
-      hashedPassword: passwordHash,
       role: Role.ADMIN,
     },
   });
+  await buildSessionUser(adminAuth.uid);
 
-  const teacherUsers = await Promise.all(
-    subjects.slice(0, 6).map((subject, i) =>
-      db.user.create({
-        data: {
-          name: `Teacher ${subject.name}`,
-          email: `teacher${i + 1}@scholaros.demo`,
-          hashedPassword: passwordHash,
-          role: Role.TEACHER,
-          teacherProfile: { create: {} },
-        },
-        include: { teacherProfile: true },
-      })
-    )
-  );
+  const teacherUsers: Array<{
+    id: string;
+    teacherProfile: { id: string };
+  }> = [];
 
-  for (let i = 0; i < teacherUsers.length; i++) {
-    const teacher = teacherUsers[i]!;
+  for (let i = 0; i < subjects.slice(0, 6).length; i++) {
+    const subject = subjects[i]!;
+    const email = `teacher${i + 1}@scholaros.demo`;
+    const authUser = await createAuthUser(email, `Teacher ${subject.name}`);
+    const user = await db.user.create({
+      data: {
+        id: authUser.uid,
+        name: `Teacher ${subject.name}`,
+        email,
+        role: Role.TEACHER,
+        teacherProfile: { create: {} },
+      },
+      include: { teacherProfile: true },
+    });
+    await buildSessionUser(authUser.uid);
+    teacherUsers.push({
+      id: user.id as string,
+      teacherProfile: user.teacherProfile as { id: string },
+    });
+
     await db.teacherSubject.create({
-      data: { teacherId: teacher.teacherProfile!.id, subjectId: subjects[i]!.id },
+      data: { teacherId: user.teacherProfile!.id, subjectId: subject.id },
     });
     await db.teacherClass.create({
-      data: { teacherId: teacher.teacherProfile!.id, classId: classes[i % classes.length]!.id },
+      data: {
+        teacherId: user.teacherProfile!.id,
+        classId: classes[i % classes.length]!.id,
+      },
     });
   }
 
-  const parentUsers = await Promise.all(
-    Array.from({ length: 20 }, (_, i) =>
-      db.user.create({
-        data: {
-          name: `Parent ${i + 1}`,
-          email: `parent${i + 1}@scholaros.demo`,
-          hashedPassword: passwordHash,
-          role: Role.PARENT,
-          parentProfile: { create: { phone: `+91 98${String(i).padStart(8, "0")}` } },
-        },
-        include: { parentProfile: true },
-      })
-    )
-  );
+  const parentUsers: Array<{
+    id: string;
+    parentProfile: { id: string };
+  }> = [];
+
+  for (let i = 0; i < 20; i++) {
+    const email = `parent${i + 1}@scholaros.demo`;
+    const authUser = await createAuthUser(email, `Parent ${i + 1}`);
+    const user = await db.user.create({
+      data: {
+        id: authUser.uid,
+        name: `Parent ${i + 1}`,
+        email,
+        role: Role.PARENT,
+        parentProfile: { create: { phone: `+91 98${String(i).padStart(8, "0")}` } },
+      },
+      include: { parentProfile: true },
+    });
+    await buildSessionUser(authUser.uid);
+    parentUsers.push({
+      id: user.id as string,
+      parentProfile: user.parentProfile as { id: string },
+    });
+  }
 
   const students: {
     userId: string;
@@ -152,11 +235,13 @@ async function main() {
     const classIdx = i % classes.length;
     const cls = classes[classIdx]!;
     const studentName = `${FIRST_NAMES[i]} Kumar`;
+    const email = `student${i + 1}@scholaros.demo`;
+    const authUser = await createAuthUser(email, studentName);
     const user = await db.user.create({
       data: {
+        id: authUser.uid,
         name: studentName,
-        email: `student${i + 1}@scholaros.demo`,
-        hashedPassword: passwordHash,
+        email,
         role: Role.STUDENT,
         studentProfile: {
           create: {
@@ -168,12 +253,17 @@ async function main() {
       },
       include: { studentProfile: true },
     });
-    students.push({ userId: user.id, name: studentName, profile: user.studentProfile! });
+    await buildSessionUser(authUser.uid);
+    students.push({
+      userId: user.id as string,
+      name: studentName,
+      profile: user.studentProfile as { id: string; classId: string },
+    });
 
     const parent = parentUsers[i % parentUsers.length]!;
     await db.parentStudent.create({
       data: {
-        parentId: parent.parentProfile!.id,
+        parentId: parent.parentProfile.id,
         studentId: user.studentProfile!.id,
         relation: i % 3 === 0 ? "Mother" : "Father",
       },
@@ -242,6 +332,7 @@ async function main() {
           studentId: st.profile.id,
           classId: st.profile.classId,
           date,
+          dateKey: dateKey(date),
           status,
           markedBy: teacher1.id,
         },
@@ -296,7 +387,8 @@ async function main() {
           feeStructureId: feeStructure.id,
           amount: 53000,
           status,
-          dueDate: status === FeeInvoiceStatus.OVERDUE ? subDays(new Date(), 10) : addDays(new Date(), 30),
+          dueDate:
+            status === FeeInvoiceStatus.OVERDUE ? subDays(new Date(), 10) : addDays(new Date(), 30),
           paidAt: status === FeeInvoiceStatus.PAID ? subDays(new Date(), 5) : null,
           description: `Annual fees for ${cls.name}`,
         },
@@ -340,8 +432,8 @@ async function main() {
   const thread = await db.messageThread.create({
     data: {
       studentId: student1.profile.id,
-      teacherId: teacher1.teacherProfile!.id,
-      parentId: parent1.parentProfile!.id,
+      teacherId: teacher1.teacherProfile.id,
+      parentId: parent1.parentProfile.id,
       subject: `Regarding ${student1.name}`,
     },
   });
@@ -391,6 +483,8 @@ async function main() {
     },
   });
 
+  await setCustomClaimsForUser(adminAuth.uid, { role: Role.ADMIN });
+
   console.log("✅ Seed complete!");
   console.log("\nDemo credentials (password: password123):");
   console.log("  Admin:   admin@scholaros.demo");
@@ -399,9 +493,11 @@ async function main() {
   console.log("  Student: student1@scholaros.demo");
 }
 
-main()
-  .catch((e) => {
+main().catch((e) => {
+  if (isAuthNotConfigured(e)) {
+    console.error("\n" + authSetupHelp() + "\n");
+  } else {
     console.error(e);
-    process.exit(1);
-  })
-  .finally(() => db.$disconnect());
+  }
+  process.exit(1);
+});

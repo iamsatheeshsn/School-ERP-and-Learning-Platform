@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, GraduationCap } from "lucide-react";
 import { useState } from "react";

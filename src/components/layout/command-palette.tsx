@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/layout/theme-provider";
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import {
   CommandDialog,
   CommandEmpty,

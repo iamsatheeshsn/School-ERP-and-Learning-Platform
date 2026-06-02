@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { getAuditLogs } from "@/actions/audit";
 import { AuditLogTable, type AuditLogRow } from "@/components/dashboard/admin/audit-log-table";
 import { PageHeader } from "@/components/shared/page-header";

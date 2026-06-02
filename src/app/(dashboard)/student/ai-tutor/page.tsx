@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { redirect } from "next/navigation";
 import { getHomeworkForStudent } from "@/actions/homework";
 import { PageHeader } from "@/components/shared/page-header";

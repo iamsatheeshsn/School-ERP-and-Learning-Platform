@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { School } from "lucide-react";
 import { ClassesTable, type ClassRow } from "@/components/dashboard/admin/classes-table";
 import { EmptyState } from "@/components/shared/empty-state";

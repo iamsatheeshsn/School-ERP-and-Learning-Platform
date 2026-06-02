@@ -27,7 +27,7 @@ export function MessageCompose({
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <FileUploadField
-        endpoint="messageAttachment"
+        folder="messages"
         attachments={attachments}
         onChange={onAttachmentsChange}
         label="Attach files"

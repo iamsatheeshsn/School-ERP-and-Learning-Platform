@@ -1,6 +1,6 @@
 "use server";
 
-import { AttendanceStatus, NotificationType, Role } from "@prisma/client";
+import { AttendanceStatus, NotificationType, Role } from "@/lib/types/enums";
 import { format } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";

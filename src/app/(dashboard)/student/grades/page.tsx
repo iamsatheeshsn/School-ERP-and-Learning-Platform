@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { Award } from "lucide-react";
 import { getStudentAnalytics } from "@/actions/analytics";
 import { EmptyState } from "@/components/shared/empty-state";

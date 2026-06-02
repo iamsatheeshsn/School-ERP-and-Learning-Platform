@@ -1,6 +1,6 @@
 "use server";
 
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -141,7 +141,7 @@ export async function createAcademicYear(
 
     revalidateSettingsPaths();
     revalidatePath("/admin/classes");
-    return ok({ id: year.id });
+    return ok({ id: (year as { id: string }).id });
   } catch (error) {
     return handleError(error);
   }

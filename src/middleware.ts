@@ -1,18 +1,40 @@
-import { auth } from "@/lib/auth";
-import { AUTH_ROUTES, PUBLIC_ROUTES, ROLE_ROUTES } from "@/lib/rbac/permissions";
 import { ROLE_DASHBOARD } from "@/lib/types";
+import { AUTH_ROUTES, PUBLIC_ROUTES, ROLE_ROUTES } from "@/lib/rbac/permissions";
+import { SESSION_COOKIE_NAME } from "@/lib/firebase/constants";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import type { Role } from "@/lib/types/enums";
 
-export default auth((req) => {
+function decodeSessionPayload(cookie: string): {
+  role?: Role;
+  uid?: string;
+} | null {
+  try {
+    const parts = cookie.split(".");
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(base64);
+    const payload = JSON.parse(json) as Record<string, unknown>;
+    return {
+      role: payload.role as Role | undefined,
+      uid: (payload.user_id as string) ?? (payload.sub as string),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isLoggedIn = !!req.auth?.user;
-  const role = req.auth?.user?.role;
+  const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const decoded = sessionCookie ? decodeSessionPayload(sessionCookie) : null;
+  const isLoggedIn = !!decoded?.uid;
+  const role = decoded?.role;
 
   const isPublic =
     PUBLIC_ROUTES.includes(pathname) ||
     pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/api/uploadthing") ||
+    pathname.startsWith("/api/storage") ||
     pathname.startsWith("/api/payments/webhook");
 
   if (isPublic) {
@@ -37,7 +59,7 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],

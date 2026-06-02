@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { changePassword, updateProfile } from "@/actions/auth";

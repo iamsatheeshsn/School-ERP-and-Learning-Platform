@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role, type AttendanceStatus } from "@/lib/types/enums";
 import { format } from "date-fns";
 import { ClipboardCheck } from "lucide-react";
 import { getAttendanceByClassAndDate } from "@/actions/attendance";
@@ -41,7 +41,7 @@ export default async function TeacherAttendancePage() {
 
   const initialRecords =
     attendanceResult.success
-      ? (attendanceResult.data as { studentId: string; status: import("@prisma/client").AttendanceStatus }[]).map(
+      ? (attendanceResult.data as { studentId: string; status: AttendanceStatus }[]).map(
           (r) => ({ studentId: r.studentId, status: r.status })
         )
       : [];

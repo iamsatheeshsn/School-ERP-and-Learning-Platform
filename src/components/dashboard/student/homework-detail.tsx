@@ -142,7 +142,7 @@ export function StudentHomeworkDetail({
               rows={8}
             />
             <FileUploadField
-              endpoint="homeworkAttachment"
+              folder="homework"
               attachments={attachments}
               onChange={setAttachments}
               label="Upload files (PDF, images)"

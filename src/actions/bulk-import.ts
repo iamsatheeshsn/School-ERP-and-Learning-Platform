@@ -1,7 +1,6 @@
 "use server";
 
-import { Role } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { Role } from "@/lib/types/enums";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { registerUser } from "@/actions/auth";

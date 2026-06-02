@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { PageHeader } from "@/components/shared/page-header";
 import { AcademicYearsPanel } from "@/components/dashboard/admin/settings/academic-years-panel";
 import { IntegrationsStatus } from "@/components/dashboard/admin/settings/integrations-status";
@@ -52,7 +52,13 @@ export default async function AdminSettingsPage() {
 
       <AcademicYearsPanel
         schoolId={school.id}
-        academicYears={school.academicYears.map((year) => ({
+        academicYears={(school.academicYears as Array<{
+          id: string;
+          name: string;
+          startDate: Date;
+          endDate: Date;
+          isCurrent: boolean;
+        }>).map((year) => ({
           id: year.id,
           name: year.name,
           startDate: year.startDate.toISOString(),

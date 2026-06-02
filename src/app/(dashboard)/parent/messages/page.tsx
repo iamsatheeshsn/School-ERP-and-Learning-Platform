@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { MessageSquare } from "lucide-react";
 import { getThreads } from "@/actions/messages";
 import { ParentMessagesPanel } from "@/components/dashboard/parent/messages-panel";

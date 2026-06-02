@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { ArrowLeft } from "lucide-react";
 import { StudentHomeworkDetail } from "@/components/dashboard/student/homework-detail";
 import { Button, buttonVariants } from "@/components/ui/button";

@@ -18,7 +18,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { ROLE_ROUTES } from "@/lib/rbac/permissions";
 
 export type NavItem = {

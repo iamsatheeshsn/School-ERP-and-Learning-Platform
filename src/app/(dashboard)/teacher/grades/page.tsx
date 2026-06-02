@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { Award } from "lucide-react";
 import { getTeacherGradeContext } from "@/actions/grades";
 import { GradesForm } from "@/components/dashboard/teacher/grades-form";

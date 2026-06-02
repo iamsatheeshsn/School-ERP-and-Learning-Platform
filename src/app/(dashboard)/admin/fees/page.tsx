@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { format } from "date-fns";
 import { Wallet } from "lucide-react";
 import { getInvoicesAdmin } from "@/actions/fees";

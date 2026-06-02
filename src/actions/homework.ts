@@ -1,6 +1,6 @@
 "use server";
 
-import { HomeworkSubmissionStatus, Role } from "@prisma/client";
+import { HomeworkSubmissionStatus, Role } from "@/lib/types/enums";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";

@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 
 export type ActionResult<T = void> =
   | { success: true; data: T }

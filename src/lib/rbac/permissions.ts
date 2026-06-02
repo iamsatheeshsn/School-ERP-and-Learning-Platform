@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 
 export const PERMISSIONS = {
   "students:read": [Role.ADMIN, Role.TEACHER],

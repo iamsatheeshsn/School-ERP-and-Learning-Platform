@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { registerUser } from "@/actions/auth";

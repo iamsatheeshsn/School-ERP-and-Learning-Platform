@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { AttendanceStatus } from "@prisma/client";
+import { AttendanceStatus } from "@/lib/types/enums";
 import { markAttendance } from "@/actions/attendance";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

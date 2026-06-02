@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { FileText } from "lucide-react";
 import { ReportCardsManager } from "@/components/dashboard/teacher/report-cards-manager";
 import { EmptyState } from "@/components/shared/empty-state";

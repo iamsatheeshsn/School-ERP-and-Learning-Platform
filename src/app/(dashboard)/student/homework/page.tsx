@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { BookOpen } from "lucide-react";
 import { getHomeworkForStudent } from "@/actions/homework";
 import { StudentHomeworkList } from "@/components/dashboard/student/homework-list";

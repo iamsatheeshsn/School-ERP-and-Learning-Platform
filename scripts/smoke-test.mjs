@@ -1,7 +1,12 @@
-import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
+import { config } from "dotenv";
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
 
-const BASE_URL = process.env.TEST_BASE_URL ?? "http://localhost:3001";
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+const BASE_URL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 const DEMO_USERS = [
   "admin@scholaros.demo",
   "teacher1@scholaros.demo",
@@ -18,7 +23,6 @@ const PROTECTED_ROUTES = [
   "/teacher/homework",
   "/parent/fees",
   "/student/homework",
-  "/api/auth/session",
 ];
 
 const results = [];
@@ -33,34 +37,56 @@ function fail(name, detail = "") {
   console.error(`✗ ${name}${detail ? ` — ${detail}` : ""}`);
 }
 
+function getAdminApp() {
+  if (getApps().length > 0) return getApps()[0];
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  if (!projectId || !clientEmail || !privateKey) {
+    throw new Error("Missing Firebase Admin env vars");
+  }
+  return initializeApp({
+    credential: cert({ projectId, clientEmail, privateKey }),
+  });
+}
+
 async function testDatabase() {
-  const db = new PrismaClient();
   try {
-    const userCount = await db.user.count();
-    pass("Database connection", `${userCount} users`);
+    getAdminApp();
+    const db = getFirestore();
+    const auth = getAuth();
+
+    const usersSnap = await db.collection("users").get();
+    pass("Firestore connection", `${usersSnap.size} users`);
 
     for (const email of DEMO_USERS) {
-      const user = await db.user.findUnique({ where: { email } });
-      if (!user) {
+      const userSnap = await db.collection("users").where("email", "==", email).limit(1).get();
+      if (userSnap.empty) {
         fail(`Seed user exists: ${email}`);
         continue;
       }
-      const valid = await bcrypt.compare("password123", user.hashedPassword);
-      if (valid) pass(`Password hash: ${email}`);
-      else fail(`Password hash: ${email}`, "password123 does not match");
+      pass(`Firestore user: ${email}`);
+
+      try {
+        await auth.getUserByEmail(email);
+        pass(`Auth user: ${email}`);
+      } catch {
+        fail(`Auth user: ${email}`, "not found in Firebase Auth");
+      }
     }
 
     const [students, threads, invoices, homework] = await Promise.all([
-      db.studentProfile.count(),
-      db.messageThread.count(),
-      db.feeInvoice.count(),
-      db.homework.count(),
+      db.collection("studentProfiles").get(),
+      db.collection("messageThreads").get(),
+      db.collection("feeInvoices").get(),
+      db.collection("homework").get(),
     ]);
-    pass("Seed data", `${students} students, ${threads} threads, ${invoices} invoices, ${homework} homework`);
+    pass(
+      "Seed data",
+      `${students.size} students, ${threads.size} threads, ${invoices.size} invoices, ${homework.size} homework`
+    );
   } catch (error) {
-    fail("Database connection", error instanceof Error ? error.message : String(error));
-  } finally {
-    await db.$disconnect();
+    fail("Firestore connection", error instanceof Error ? error.message : String(error));
   }
 }
 
@@ -106,83 +132,10 @@ async function testRoutes() {
   }
 }
 
-async function testAuthFlow() {
-  try {
-    const csrfRes = await fetch(`${BASE_URL}/api/auth/csrf`);
-    if (!csrfRes.ok) {
-      fail("Auth CSRF", `HTTP ${csrfRes.status}`);
-      return;
-    }
-    const { csrfToken } = await csrfRes.json();
-    pass("Auth CSRF", "token received");
-
-    const body = new URLSearchParams({
-      csrfToken,
-      email: "admin@scholaros.demo",
-      password: "password123",
-      redirect: "false",
-      json: "true",
-    });
-
-    const loginRes = await fetch(`${BASE_URL}/api/auth/callback/credentials`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Cookie: csrfRes.headers.get("set-cookie") ?? "",
-      },
-      body,
-      redirect: "manual",
-    });
-
-    const loginJson = await loginRes.json().catch(() => ({}));
-    const setCookie = loginRes.headers.get("set-cookie") ?? "";
-
-    if (loginJson.error) {
-      fail("Admin login", loginJson.error);
-      return;
-    }
-
-    pass("Admin login", `HTTP ${loginRes.status}`);
-
-    const sessionRes = await fetch(`${BASE_URL}/api/auth/session`, {
-      headers: { Cookie: setCookie },
-    });
-    const session = await sessionRes.json();
-    if (session?.user?.role === "ADMIN") {
-      pass("Admin session", session.user.email);
-    } else {
-      fail("Admin session", JSON.stringify(session));
-    }
-
-    const authedRoutes = [
-      "/admin/dashboard",
-      "/admin/students",
-      "/admin/fees",
-      "/admin/analytics",
-    ];
-
-    for (const path of authedRoutes) {
-      const res = await fetch(`${BASE_URL}${path}`, {
-        headers: { Cookie: setCookie },
-        redirect: "manual",
-      });
-      if (res.status === 200) pass(`Authed route ${path}`, "HTTP 200");
-      else fail(`Authed route ${path}`, `HTTP ${res.status}`);
-    }
-  } catch (error) {
-    fail("Auth flow", error instanceof Error ? error.message : String(error));
-  }
-}
-
-async function testBuildArtifacts() {
-  pass("Build", "skipped (run npm run build separately)");
-}
-
 console.log(`\nScholarOS smoke test → ${BASE_URL}\n`);
 
 await testDatabase();
 await testRoutes();
-await testAuthFlow();
 
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} passed`);

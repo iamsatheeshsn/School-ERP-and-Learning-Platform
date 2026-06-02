@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { formatDistanceToNow } from "date-fns";
 import { Bell } from "lucide-react";
 import { useRouter } from "next/navigation";

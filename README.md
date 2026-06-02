@@ -6,10 +6,10 @@ AI-powered School ERP and Learning Platform — a modern full-stack web applicat
 
 - **Framework:** Next.js 16 (App Router, Server Actions, TypeScript strict)
 - **UI:** Tailwind CSS v4, shadcn/ui, Framer Motion
-- **Database:** Prisma ORM + Prisma Postgres (local dev via `prisma dev`)
-- **Auth:** NextAuth.js v5 (credentials, role-based access)
+- **Database:** Google Cloud Firestore (Firebase Admin SDK on server)
+- **Auth:** Firebase Authentication (email/password, session cookies, role claims)
+- **Storage:** Firebase Cloud Storage
 - **AI:** Google Gemini (`@google/generative-ai`)
-- **Files:** UploadThing
 - **Live updates:** SSE (`/api/messages/stream`) for instant message delivery
 - **Email:** Resend
 - **Payments:** Razorpay (stub interface)
@@ -20,9 +20,19 @@ AI-powered School ERP and Learning Platform — a modern full-stack web applicat
 
 - Node.js 20+
 - npm
-- API keys (optional for local demo): Gemini, Resend, UploadThing, Razorpay
+- A Firebase project ([Firebase Console](https://console.firebase.google.com))
+- API keys (optional for local demo): Gemini, Resend, Razorpay
 
 > **Note:** ScholarOS runs as a Node.js app (`npm run dev`). It does not run through Apache/XAMPP directly.
+
+## Firebase project setup
+
+1. Create a Firebase project (e.g. `scholaros-dev`).
+2. Enable **Authentication** → **Get started** → **Sign-in method** → turn on **Email/Password** → Save.
+3. Create a **Firestore** database (test mode is fine for initial seed).
+4. Enable **Cloud Storage** (default bucket).
+5. Register a **Web app** and copy the client config values.
+6. Generate a **service account** private key (Project settings → Service accounts).
 
 ## Setup
 
@@ -39,38 +49,36 @@ npm install
 cp .env.example .env.local
 ```
 
-Prisma CLI reads **`.env`**; Next.js reads **`.env.local`**. Keep `DATABASE_URL` and `DIRECT_URL` in sync in both files.
+Fill in Firebase client and admin credentials in `.env.local`:
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | Prisma Postgres connection (from `npm run db:dev` output) |
-| `DIRECT_URL` | Same direct URL (used for migrations) |
-| `NEXTAUTH_SECRET` | Random secret (`openssl rand -base64 32`) |
-| `NEXTAUTH_URL` | `http://localhost:3000` |
-| `GEMINI_API_KEY` | Google Gemini API key ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)) |
+| `NEXT_PUBLIC_FIREBASE_*` | Web app config from Firebase Console |
+| `FIREBASE_ADMIN_PROJECT_ID` | Service account project ID |
+| `FIREBASE_ADMIN_CLIENT_EMAIL` | Service account client email |
+| `FIREBASE_ADMIN_PRIVATE_KEY` | Service account private key (escape newlines as `\n`) |
+| `GEMINI_API_KEY` | Google Gemini API key |
 | `GEMINI_MODEL` | Optional — default `gemini-2.0-flash` |
 | `RESEND_API_KEY` | Email delivery (optional) |
-| `UPLOADTHING_TOKEN` | UploadThing V7 token ([uploadthing.com/dashboard](https://uploadthing.com/dashboard)) |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Payment stub (optional) |
 
-### 3. Start Prisma Postgres & sync schema
+Optional: use the [Firebase Emulator Suite](https://firebase.google.com/docs/emulator-suite) for offline dev by setting `FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`, and `FIREBASE_STORAGE_EMULATOR_HOST` in `.env.local`.
 
-**Terminal 1** — start the local database (keep running):
+### 3. Deploy Firestore rules (optional but recommended)
 
 ```bash
-npm run db:dev
+firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
 
-Copy the `DATABASE_URL` from the output into `.env` and `.env.local` if ports differ from the defaults in `.env.example`.
-
-**Terminal 2** — push schema and seed:
+### 4. Seed demo data
 
 ```bash
-npx prisma db push
 npm run db:seed
 ```
 
-### 4. Run the app
+This creates Firebase Auth users and Firestore documents for Greenwood International School.
+
+### 5. Run the app
 
 ```bash
 npm run dev
@@ -92,13 +100,13 @@ Password for all accounts: **`password123`**
 ## Features
 
 ### Homework + AI
-- Teachers create assignments with file attachments
+- Teachers create assignments with file attachments (Firebase Storage)
 - Students submit homework; Gemini auto-generates formative feedback
 - **AI Tutor:** Socratic chat scoped to each assignment (streaming)
 - **AI Worksheet Generator:** Teachers draft assignments from topic + difficulty
 
 ### Parent Communication
-- Threaded teacher ↔ parent messaging (SSE realtime + Prisma storage)
+- Threaded teacher ↔ parent messaging (SSE realtime + Firestore storage)
 - AI draft assist for weekly updates
 - School/class broadcast announcements (email + in-app)
 
@@ -135,17 +143,19 @@ src/
 │   ├── shared/           # StatCard, DataTable, etc.
 │   └── dashboard/        # Role-specific client components
 ├── lib/
-│   ├── ai/               # Claude client, prompts, services
-│   ├── auth/             # NextAuth config
-│   ├── db/               # Prisma singleton
+│   ├── ai/               # Gemini client, prompts, services
+│   ├── auth/             # Firebase session helpers
+│   ├── db/               # Firestore data layer
+│   ├── firebase/         # Firebase client + admin init
 │   ├── rbac/             # Permissions + guards
 │   ├── payments/         # Razorpay provider
-│   ├── realtime/         # Polling helpers
+│   ├── realtime/         # SSE helpers
 │   └── pdf/              # Report card PDF generation
-└── hooks/
-prisma/
-├── schema.prisma
-└── seed.ts
+scripts/
+└── seed.ts               # Demo data seed
+firestore.rules
+storage.rules
+firebase.json
 ```
 
 ## Scripts
@@ -154,22 +164,17 @@ prisma/
 |---------|-------------|
 | `npm run dev` | Start Next.js dev server |
 | `npm run build` | Production build |
-| `npm run db:dev` | Start local Prisma Postgres |
-| `npm run db:push` | Sync schema to database |
-| `npm run db:migrate` | Run Prisma migrations |
-| `npm run db:seed` | Seed demo data |
-| `npm run db:studio` | Open Prisma Studio |
+| `npm run db:seed` | Seed Firestore + Firebase Auth demo data |
 
 ## RBAC
 
 Roles: **Admin**, **Teacher**, **Parent**, **Student**
 
 Enforced at:
-1. Middleware (route prefixes)
+1. Middleware (route prefixes via Firebase session claims)
 2. Server Actions (`requireRole`, `requirePermission`)
 3. DB queries (scoped by role)
 
 ## License
 
 Private — Greenwood International School demo project.
-# School-ERP-and-Learning-Platform

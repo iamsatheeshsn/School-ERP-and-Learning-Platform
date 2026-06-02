@@ -1,4 +1,4 @@
-import { AttendanceStatus } from "@prisma/client";
+import { AttendanceStatus } from "@/lib/types/enums";
 import { db } from "@/lib/db";
 
 export const ATTENDANCE_THRESHOLD_PCT = 75;

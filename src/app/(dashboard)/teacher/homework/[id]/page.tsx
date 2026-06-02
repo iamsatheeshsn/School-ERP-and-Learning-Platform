@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { ArrowLeft } from "lucide-react";
 import { HomeworkDetailPanel } from "@/components/dashboard/teacher/homework-detail";
 import { buttonVariants } from "@/components/ui/button";
@@ -54,7 +54,7 @@ export default async function TeacherHomeworkDetailPage({ params }: PageProps) {
           subject: homework.subject,
           class: homework.class,
         }}
-        submissions={homework.submissions.map((s) => ({
+        submissions={(homework.submissions as Array<Record<string, any>>).map((s) => ({
           id: s.id,
           status: s.status,
           content: s.content,

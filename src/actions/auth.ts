@@ -1,10 +1,11 @@
 "use server";
 
-import { Role } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { Role } from "@/lib/types/enums";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { buildSessionUser } from "@/lib/auth/session";
+import { getAdminAuth } from "@/lib/firebase/admin";
 import { AuthError, ForbiddenError, requireAuth, requireRole } from "@/lib/rbac/guards";
 import { ok, fail, type ActionResult, type SessionUser } from "@/lib/types";
 
@@ -82,13 +83,17 @@ export async function registerUser(
       if (rollTaken) return fail("Roll number already used in this class");
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const authUser = await getAdminAuth().createUser({
+      email: email.toLowerCase(),
+      password,
+      displayName: name.trim(),
+    });
 
     const user = await db.user.create({
       data: {
+        id: authUser.uid,
         name: name.trim(),
         email: email.toLowerCase(),
-        hashedPassword,
         role,
         ...(role === Role.STUDENT && classId && rollNo
           ? {
@@ -108,8 +113,9 @@ export async function registerUser(
       },
     });
 
+    await buildSessionUser(authUser.uid);
     revalidateRegistrationPaths(role);
-    return ok({ userId: user.id });
+    return ok({ userId: user.id as string });
   } catch (error) {
     return handleError(error);
   }
@@ -145,19 +151,29 @@ export async function getCurrentUser(): Promise<
 
     if (!user) return fail("User not found");
 
+    const studentProfile = user.studentProfile as
+      | { id: string; classId: string; rollNo: string }
+      | null
+      | undefined;
+    const teacherProfile = user.teacherProfile as { id: string } | null | undefined;
+    const parentProfile = user.parentProfile as
+      | { id: string; phone: string | null }
+      | null
+      | undefined;
+
     return ok({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      avatar: user.avatar,
-      studentProfileId: user.studentProfile?.id,
-      teacherProfileId: user.teacherProfile?.id,
-      parentProfileId: user.parentProfile?.id,
-      createdAt: user.createdAt,
-      studentProfile: user.studentProfile,
-      teacherProfile: user.teacherProfile,
-      parentProfile: user.parentProfile,
+      id: user.id as string,
+      email: user.email as string,
+      name: user.name as string,
+      role: user.role as Role,
+      avatar: user.avatar as string | null | undefined,
+      studentProfileId: studentProfile?.id,
+      teacherProfileId: teacherProfile?.id,
+      parentProfileId: parentProfile?.id,
+      createdAt: user.createdAt as Date,
+      studentProfile: studentProfile ?? null,
+      teacherProfile: teacherProfile ?? null,
+      parentProfile: parentProfile ?? null,
     });
   } catch (error) {
     return handleError(error);
@@ -191,6 +207,7 @@ export async function updateProfile(
       data: { name: parsed.data.name.trim() },
     });
 
+    await getAdminAuth().updateUser(user.id, { displayName: parsed.data.name.trim() });
     revalidatePath("/profile");
     return ok(undefined);
   } catch (error) {
@@ -206,23 +223,13 @@ export async function changePassword(
     const parsed = changePasswordSchema.safeParse(input);
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
 
-    const user = await db.user.findUnique({
-      where: { id: sessionUser.id },
-      select: { hashedPassword: true },
-    });
-    if (!user) return fail("User not found");
-
-    const valid = await bcrypt.compare(parsed.data.currentPassword, user.hashedPassword);
-    if (!valid) return fail("Current password is incorrect");
-
-    await db.user.update({
-      where: { id: sessionUser.id },
-      data: { hashedPassword: await bcrypt.hash(parsed.data.newPassword, 10) },
+    await getAdminAuth().updateUser(sessionUser.id, {
+      password: parsed.data.newPassword,
     });
 
     return ok(undefined);
   } catch (error) {
-    return handleError(error);
+    return fail("Could not update password");
   }
 }
 
@@ -240,9 +247,8 @@ export async function adminResetPassword(
     const user = await db.user.findUnique({ where: { id: parsed.data.userId } });
     if (!user) return fail("User not found");
 
-    await db.user.update({
-      where: { id: parsed.data.userId },
-      data: { hashedPassword: await bcrypt.hash(parsed.data.newPassword, 10) },
+    await getAdminAuth().updateUser(parsed.data.userId, {
+      password: parsed.data.newPassword,
     });
 
     return ok(undefined);

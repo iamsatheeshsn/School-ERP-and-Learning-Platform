@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { auth } from "@/lib/auth";
 import { hasPermission, Permission } from "@/lib/rbac/permissions";
 import type { SessionUser } from "@/lib/types";

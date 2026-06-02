@@ -1,8 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { useTheme } from "@/components/layout/theme-provider";
 import {
   LogOut,
@@ -54,7 +53,7 @@ export function DashboardHeader({
     : "U";
 
   async function handleSignOut() {
-    await signOut({ redirect: false });
+    await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
   }

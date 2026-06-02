@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { getClientAuth } from "@/lib/firebase/client";
 import { ROLE_DASHBOARD } from "@/lib/types";
-import { Role } from "@prisma/client";
+import type { Role } from "@/lib/types/enums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,25 +30,28 @@ export function LoginForm({ className }: LoginFormProps) {
     setIsLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
+      const auth = getClientAuth();
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      const idToken = await credential.user.getIdToken();
+
+      const sessionRes = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
       });
 
-      if (result?.error) {
+      if (!sessionRes.ok) {
         setError("Invalid email or password. Please try again.");
         return;
       }
 
-      const sessionRes = await fetch("/api/auth/session");
       const session = await sessionRes.json();
       const role = session?.user?.role as Role | undefined;
       const destination = role ? ROLE_DASHBOARD[role] : "/";
       router.push(destination);
       router.refresh();
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Invalid email or password. Please try again.");
     } finally {
       setIsLoading(false);
     }

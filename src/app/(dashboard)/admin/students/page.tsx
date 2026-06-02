@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import Link from "next/link";
 import { Users } from "lucide-react";
 import { StudentsAdminPanel } from "@/components/dashboard/admin/students-admin-panel";

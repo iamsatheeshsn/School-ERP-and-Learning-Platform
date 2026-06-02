@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/types/enums";
 import { db } from "@/lib/db";
 import { ForbiddenError } from "@/lib/rbac/guards";
 import type { SessionUser } from "@/lib/types";

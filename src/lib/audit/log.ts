@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 
 type AuditParams = {
@@ -21,7 +20,7 @@ export async function writeAuditLog(params: AuditParams): Promise<void> {
         entity: params.entity,
         entityId: params.entityId ?? null,
         summary: params.summary,
-        metadata: (params.metadata ?? {}) as Prisma.InputJsonValue,
+        metadata: params.metadata ?? {},
       },
     });
   } catch {

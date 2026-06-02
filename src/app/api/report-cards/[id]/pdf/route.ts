@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ReportCardStatus } from "@prisma/client";
+import { ReportCardStatus } from "@/lib/types/enums";
 import { db } from "@/lib/db";
 import { generateReportCardPdf } from "@/lib/pdf/generate";
 import { getSessionUser } from "@/lib/rbac/guards";

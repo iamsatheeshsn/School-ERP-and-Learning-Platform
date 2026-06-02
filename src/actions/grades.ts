@@ -1,6 +1,6 @@
 "use server";
 
-import { ExamType, Role } from "@prisma/client";
+import { ExamType, Role } from "@/lib/types/enums";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
