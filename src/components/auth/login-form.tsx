@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, type AuthError } from "firebase/auth";
 import { getClientAuth } from "@/lib/firebase/client";
 import { ROLE_DASHBOARD } from "@/lib/types";
 import type { Role } from "@/lib/types/enums";
@@ -16,6 +16,41 @@ import { cn } from "@/lib/utils";
 type LoginFormProps = {
   className?: string;
 };
+
+type SessionResponse = {
+  user?: { role?: Role };
+  refreshToken?: boolean;
+  error?: string;
+};
+
+function mapFirebaseAuthError(error: AuthError): string {
+  switch (error.code) {
+    case "auth/invalid-api-key":
+    case "auth/invalid-credential":
+      return "Firebase is not configured on this deployment. Add NEXT_PUBLIC_FIREBASE_* variables in Netlify and redeploy.";
+    case "auth/unauthorized-domain":
+      return "This site is not authorized in Firebase. Add your Netlify domain under Authentication → Settings → Authorized domains.";
+    case "auth/user-not-found":
+    case "auth/wrong-password":
+    case "auth/invalid-email":
+      return "Invalid email or password. Please try again.";
+    case "auth/too-many-requests":
+      return "Too many failed attempts. Please wait a moment and try again.";
+    default:
+      return error.message || "Sign-in failed. Please try again.";
+  }
+}
+
+async function postSession(idToken: string) {
+  const sessionRes = await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+
+  const session = (await sessionRes.json()) as SessionResponse;
+  return { sessionRes, session };
+}
 
 export function LoginForm({ className }: LoginFormProps) {
   const router = useRouter();
@@ -32,26 +67,37 @@ export function LoginForm({ className }: LoginFormProps) {
     try {
       const auth = getClientAuth();
       const credential = await signInWithEmailAndPassword(auth, email, password);
-      const idToken = await credential.user.getIdToken();
+      let idToken = await credential.user.getIdToken();
 
-      const sessionRes = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
+      let { sessionRes, session } = await postSession(idToken);
+
+      if (session.refreshToken) {
+        idToken = await credential.user.getIdToken(true);
+        ({ sessionRes, session } = await postSession(idToken));
+      }
 
       if (!sessionRes.ok) {
-        setError("Invalid email or password. Please try again.");
+        setError(session.error ?? "Could not start a session. Check server Firebase Admin settings.");
         return;
       }
 
-      const session = await sessionRes.json();
-      const role = session?.user?.role as Role | undefined;
+      const role = session?.user?.role;
       const destination = role ? ROLE_DASHBOARD[role] : "/";
       router.push(destination);
       router.refresh();
-    } catch {
-      setError("Invalid email or password. Please try again.");
+    } catch (err) {
+      const authError = err as AuthError;
+      if (authError?.code?.startsWith("auth/")) {
+        setError(mapFirebaseAuthError(authError));
+        return;
+      }
+
+      if (err instanceof Error && err.message.includes("Firebase client is not configured")) {
+        setError(err.message);
+        return;
+      }
+
+      setError("Sign-in failed. Please try again.");
     } finally {
       setIsLoading(false);
     }

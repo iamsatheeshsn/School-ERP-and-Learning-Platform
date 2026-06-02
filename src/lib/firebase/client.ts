@@ -1,15 +1,12 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
+import {
+  firebaseClientConfig,
+  getMissingFirebaseClientEnvKeys,
+} from "@/lib/firebase/config";
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+const firebaseConfig = firebaseClientConfig;
 
 let clientApp: FirebaseApp | undefined;
 
@@ -19,6 +16,15 @@ export function getClientApp(): FirebaseApp {
     clientApp = getApps()[0];
     return clientApp;
   }
+
+  const missing = getMissingFirebaseClientEnvKeys();
+  if (missing.length > 0) {
+    throw new Error(
+      `Firebase client is not configured. Missing environment variables: ${missing.join(", ")}. ` +
+        "Set them in Netlify (Site settings → Environment variables) and redeploy."
+    );
+  }
+
   clientApp = initializeApp(firebaseConfig);
   return clientApp;
 }

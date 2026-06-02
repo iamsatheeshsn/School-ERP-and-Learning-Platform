@@ -12,17 +12,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing idToken" }, { status: 400 });
     }
 
-    const sessionCookie = await createSessionCookie(idToken);
-    await setSessionCookie(sessionCookie);
-
     const { getAdminAuth } = await import("@/lib/firebase/admin");
     const decoded = await getAdminAuth().verifyIdToken(idToken);
     const user = await buildSessionUser(decoded.uid);
 
+    if (!user) {
+      return NextResponse.json(
+        {
+          error:
+            "No user profile found for this account. Run npm run db:seed against your Firebase project.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Custom claims are set in buildSessionUser. The ID token must be refreshed
+    // on the client before we mint a session cookie, or middleware won't see role.
+    if (!decoded.role) {
+      return NextResponse.json({ user, refreshToken: true });
+    }
+
+    const sessionCookie = await createSessionCookie(idToken);
+    await setSessionCookie(sessionCookie);
+
     return NextResponse.json({ user });
   } catch (error) {
     console.error("Session creation failed:", error);
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Could not create session. Check Firebase Admin credentials on the server." },
+      { status: 401 }
+    );
   }
 }
 

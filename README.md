@@ -86,6 +86,49 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
+## Deploy to Netlify
+
+Login on Netlify requires Firebase env vars **before** the site is built. `NEXT_PUBLIC_*` values are baked into the client JavaScript at build time — changing them later without redeploying will not fix login.
+
+### 1. Netlify environment variables
+
+In **Site settings → Environment variables**, add every value from `.env.example`:
+
+| Variable | Scope |
+|----------|--------|
+| `NEXT_PUBLIC_FIREBASE_*` (all 6) | Build + runtime |
+| `FIREBASE_ADMIN_PROJECT_ID` | Runtime |
+| `FIREBASE_ADMIN_CLIENT_EMAIL` | Runtime |
+| `FIREBASE_ADMIN_PRIVATE_KEY` | Runtime — paste the key with `\n` for line breaks, wrapped in quotes |
+| `NEXT_PUBLIC_APP_URL` | Build — set to `https://your-site.netlify.app` |
+
+Optional: `GEMINI_API_KEY`, `RESEND_*`, `RAZORPAY_*` for full feature parity.
+
+After adding or changing variables, trigger **Deploy → Trigger deploy → Clear cache and deploy site**.
+
+### 2. Firebase authorized domains
+
+Firebase Console → **Authentication** → **Settings** → **Authorized domains** → add:
+
+- `school-erp-and-learning-platform.netlify.app` (or your Netlify subdomain)
+- `localhost` (for local dev)
+
+### 3. Seed production data
+
+Run the seed against the same Firebase project used in Netlify env vars:
+
+```bash
+npm run db:seed
+```
+
+Use a local `.env.local` with the production Firebase credentials, or set the same variables in your shell before seeding.
+
+### 4. Verify deployment
+
+Open `https://your-site.netlify.app/api/health` — both `firebaseClient.configured` and `firebaseAdmin.configured` should be `true`.
+
+Then sign in with a seeded demo account (e.g. `admin@scholaros.demo` / `password123`).
+
 ## Demo Credentials
 
 Password for all accounts: **`password123`**
