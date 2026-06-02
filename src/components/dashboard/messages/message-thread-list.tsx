@@ -13,6 +13,8 @@ type MessageThreadListProps = {
   selectedThreadId: string | null;
   onSelect: (threadId: string) => void;
   renderSubtitle: (thread: ThreadItem) => string;
+  headerAction?: React.ReactNode;
+  emptyMessage?: string;
 };
 
 export function MessageThreadList({
@@ -21,15 +23,23 @@ export function MessageThreadList({
   selectedThreadId,
   onSelect,
   renderSubtitle,
+  headerAction,
+  emptyMessage = "No conversations yet.",
 }: MessageThreadListProps) {
   return (
     <Card className="lg:col-span-1">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="font-heading text-lg">{title}</CardTitle>
+        {headerAction}
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[420px]">
-          {threads.map((thread) => {
+          {threads.length === 0 ? (
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+              {emptyMessage}
+            </p>
+          ) : (
+            threads.map((thread) => {
             const preview = thread.messages[0];
             const hasUnread = (thread.unreadCount ?? 0) > 0;
 
@@ -83,7 +93,8 @@ export function MessageThreadList({
                 )}
               </button>
             );
-          })}
+          })
+          )}
         </ScrollArea>
       </CardContent>
     </Card>

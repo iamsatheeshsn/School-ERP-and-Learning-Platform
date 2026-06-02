@@ -84,6 +84,47 @@ export function NotificationBell({ userRole }: NotificationBellProps) {
       return;
     }
 
+    if (notification.type === "EXAM_RESULT") {
+      const examPath: Partial<Record<Role, string>> = {
+        STUDENT: "/student/exams",
+        PARENT: "/parent/exams",
+        TEACHER: "/teacher/exams",
+        ADMIN: "/admin/exams",
+      };
+      const path = examPath[userRole];
+      if (path) router.push(path);
+      return;
+    }
+
+    if (notification.type === "LIBRARY") {
+      const path: Partial<Record<Role, string>> = {
+        STUDENT: "/student/library",
+        PARENT: "/parent/library",
+        ADMIN: "/admin/library",
+      };
+      if (path[userRole]) router.push(path[userRole]!);
+      return;
+    }
+
+    if (notification.type === "TRANSPORT") {
+      const path: Partial<Record<Role, string>> = {
+        STUDENT: "/student/transport",
+        PARENT: "/parent/transport",
+        ADMIN: "/admin/transport",
+      };
+      if (path[userRole]) router.push(path[userRole]!);
+      return;
+    }
+
+    if (notification.type === "LEAVE") {
+      const path: Partial<Record<Role, string>> = {
+        TEACHER: "/teacher/leave",
+        ADMIN: "/admin/leave",
+      };
+      if (path[userRole]) router.push(path[userRole]!);
+      return;
+    }
+
     const dashboard: Record<Role, string> = {
       ADMIN: "/admin/dashboard",
       TEACHER: "/teacher/dashboard",

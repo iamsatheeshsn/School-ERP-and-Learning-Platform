@@ -1,7 +1,8 @@
+import { redirect } from "next/navigation";
 import { Role } from "@/lib/types/enums";
 import { auth } from "@/lib/auth";
 import { hasPermission, Permission } from "@/lib/rbac/permissions";
-import type { SessionUser } from "@/lib/types";
+import { ROLE_DASHBOARD, type SessionUser } from "@/lib/types";
 
 export class AuthError extends Error {
   constructor(message = "Unauthorized") {
@@ -25,13 +26,19 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
 export async function requireAuth(): Promise<SessionUser> {
   const user = await getSessionUser();
-  if (!user) throw new AuthError();
+  if (!user) {
+    const { clearSessionCookie } = await import("@/lib/auth/session");
+    await clearSessionCookie();
+    redirect("/login");
+  }
   return user;
 }
 
 export async function requireRole(...roles: Role[]): Promise<SessionUser> {
   const user = await requireAuth();
-  if (!roles.includes(user.role)) throw new ForbiddenError();
+  if (!roles.includes(user.role)) {
+    redirect(ROLE_DASHBOARD[user.role] ?? "/login");
+  }
   return user;
 }
 

@@ -1,0 +1,31 @@
+{
+  "name": "ScholarOS",
+  "short_name": "ScholarOS",
+  "description": "School ERP for parents, teachers, and students",
+  "start_url": "/parent/dashboard",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["education"],
+  "shortcuts": [
+    {
+      "name": "Fees",
+      "url": "/parent/fees",
+      "description": "View and pay school fees"
+    },
+    {
+      "name": "Messages",
+      "url": "/parent/messages",
+      "description": "Teacher messages"
+    }
+  ]
+}

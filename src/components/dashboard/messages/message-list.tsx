@@ -14,7 +14,13 @@ type MessageListProps = {
   className?: string;
 };
 
-function AttachmentLinks({ attachments }: { attachments: AttachmentMeta[] }) {
+function AttachmentLinks({
+  attachments,
+  isOwn,
+}: {
+  attachments: AttachmentMeta[];
+  isOwn?: boolean;
+}) {
   if (attachments.length === 0) return null;
 
   return (
@@ -25,7 +31,12 @@ function AttachmentLinks({ attachments }: { attachments: AttachmentMeta[] }) {
             href={file.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex max-w-full items-center gap-1 rounded-md bg-background/60 px-2 py-1 text-xs text-primary hover:underline"
+            className={cn(
+              "inline-flex max-w-full items-center gap-1 rounded-md px-2 py-1 text-xs hover:underline",
+              isOwn
+                ? "bg-primary-foreground/15 text-primary-foreground"
+                : "bg-background/60 text-primary"
+            )}
           >
             <Paperclip className="size-3 shrink-0" />
             <span className="truncate">{file.name}</span>
@@ -84,7 +95,10 @@ export function MessageList({
                 </p>
                 <p className="mt-0.5 text-sm whitespace-pre-wrap">{msg.body}</p>
                 {msg.attachments && msg.attachments.length > 0 && (
-                  <AttachmentLinks attachments={msg.attachments} />
+                  <AttachmentLinks
+                    attachments={msg.attachments}
+                    isOwn={isOwn}
+                  />
                 )}
               </div>
             </div>

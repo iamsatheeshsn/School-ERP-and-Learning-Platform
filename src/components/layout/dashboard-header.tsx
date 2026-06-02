@@ -5,6 +5,7 @@ import { Role } from "@/lib/types/enums";
 import { useTheme } from "@/components/layout/theme-provider";
 import {
   LogOut,
+  Menu,
   Moon,
   Settings,
   Sun,
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { SidebarBrand } from "@/components/layout/sidebar-nav";
 import { ROLE_ROUTES } from "@/lib/rbac/permissions";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +32,7 @@ type DashboardHeaderProps = {
   userEmail?: string | null;
   userAvatar?: string | null;
   userRole: Role;
+  onOpenMobileNav?: () => void;
   className?: string;
 };
 
@@ -38,6 +41,7 @@ export function DashboardHeader({
   userEmail,
   userAvatar,
   userRole,
+  onOpenMobileNav,
   className,
 }: DashboardHeaderProps) {
   const { resolvedTheme, setTheme } = useTheme();
@@ -61,13 +65,28 @@ export function DashboardHeader({
   return (
     <header
       className={cn(
-        "flex h-14 shrink-0 items-center justify-between gap-4 border-b border-primary/10 bg-background/70 px-4 backdrop-blur-md",
+        "flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-border bg-background/70 px-3 backdrop-blur-md",
         className
       )}
     >
-      <div className="flex-1" />
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {onOpenMobileNav && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9 shrink-0 md:hidden"
+            onClick={onOpenMobileNav}
+            aria-label="Open navigation menu"
+          >
+            <Menu className="size-5" />
+          </Button>
+        )}
+        {onOpenMobileNav && (
+          <SidebarBrand compact className="md:hidden" />
+        )}
+      </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1">
         <Button
           variant="ghost"
           size="icon"

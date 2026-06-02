@@ -8,6 +8,10 @@ import {
   FeeInvoiceStatus,
   ReportCardStatus,
   ExamType,
+  ExamStatus,
+  LibraryIssueStatus,
+  LeaveStatus,
+  LeaveType,
   NotificationType,
 } from "../src/lib/types/enums";
 import { deleteAllCollections, db } from "../src/lib/db";
@@ -357,6 +361,79 @@ async function main() {
     }
   }
 
+  const grade6 = classes[0]!;
+  const mathSubject = subjects[0]!;
+  const midtermExam = await db.exam.create({
+    data: {
+      name: "Midterm Mathematics",
+      type: ExamType.MIDTERM,
+      classId: grade6.id,
+      subjectId: mathSubject.id,
+      term: "Term 1",
+      examDate: subDays(new Date(), 7),
+      maxMarks: 100,
+      showRanks: true,
+      status: ExamStatus.PUBLISHED,
+      createdBy: teacher1.id,
+      publishedAt: subDays(new Date(), 2),
+    },
+  });
+
+  const grade6Students = students.filter((s) => s.profile.classId === grade6.id);
+  const midtermMarks = grade6Students.map((st, index) => ({
+    studentId: st.profile.id,
+    marks: 72 + (index % 5) * 5,
+  }));
+  midtermMarks.sort((a, b) => b.marks - a.marks);
+
+  for (let i = 0; i < midtermMarks.length; i++) {
+    const row = midtermMarks[i]!;
+    const percentage = Math.round((row.marks / 100) * 100);
+    let rank = i + 1;
+    if (i > 0 && row.marks === midtermMarks[i - 1]!.marks) {
+      rank = midtermMarks.findIndex((m) => m.marks === row.marks) + 1;
+    }
+    await db.examResult.create({
+      data: {
+        examId: midtermExam.id,
+        studentId: row.studentId,
+        marks: row.marks,
+        percentage,
+        gradeLetter: percentage >= 90 ? "A+" : percentage >= 80 ? "A" : "B+",
+        rank,
+        enteredBy: teacher1.id,
+      },
+    });
+  }
+
+  const scienceExam = await db.exam.create({
+    data: {
+      name: "Unit Test — Science",
+      type: ExamType.UNIT_TEST,
+      classId: grade6.id,
+      subjectId: subjects[1]!.id,
+      term: "Term 1",
+      examDate: addDays(new Date(), 5),
+      maxMarks: 50,
+      showRanks: true,
+      status: ExamStatus.SCHEDULED,
+      createdBy: admin.id,
+    },
+  });
+
+  for (const st of grade6Students.slice(0, 5)) {
+    await db.examResult.create({
+      data: {
+        examId: scienceExam.id,
+        studentId: st.profile.id,
+        marks: 30 + Math.floor(Math.random() * 18),
+        percentage: 0,
+        gradeLetter: "—",
+        enteredBy: teacher1.id,
+      },
+    });
+  }
+
   for (const cls of classes) {
     const feeStructure = await db.feeStructure.create({
       data: {
@@ -480,6 +557,64 @@ async function main() {
       scope: "school",
       scopeId: school.id,
       createdBy: admin.id,
+    },
+  });
+
+  const book1 = await db.book.create({
+    data: {
+      schoolId: school.id,
+      title: "Introduction to Algebra",
+      author: "R.D. Sharma",
+      isbn: "978-8197596140",
+      category: "Mathematics",
+      totalCopies: 5,
+      availableCopies: 4,
+    },
+  });
+
+  await db.libraryIssue.create({
+    data: {
+      bookId: book1.id,
+      studentId: student1.profile.id,
+      issuedAt: subDays(new Date(), 5),
+      dueAt: addDays(new Date(), 9),
+      status: LibraryIssueStatus.ISSUED,
+      fineAmount: 0,
+    },
+  });
+
+  const routeNorth = await db.transportRoute.create({
+    data: {
+      schoolId: school.id,
+      name: "North Bangalore Route",
+      vehicleNumber: "KA-01-AB-1234",
+      driverName: "Ramesh Kumar",
+      driverPhone: "+91 9876500001",
+      stops: [
+        { name: "Hebbal", pickupTime: "07:15" },
+        { name: "Yelahanka", pickupTime: "07:35" },
+        { name: "School Gate", pickupTime: "08:00" },
+      ],
+      active: true,
+    },
+  });
+
+  await db.transportAssignment.create({
+    data: {
+      routeId: routeNorth.id,
+      stopName: "Hebbal",
+      studentId: student1.profile.id,
+    },
+  });
+
+  await db.leaveRequest.create({
+    data: {
+      teacherId: teacher1.teacherProfile.id,
+      startDate: addDays(new Date(), 14),
+      endDate: addDays(new Date(), 16),
+      type: LeaveType.CASUAL,
+      reason: "Family function out of town.",
+      status: LeaveStatus.PENDING,
     },
   });
 

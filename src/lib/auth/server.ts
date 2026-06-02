@@ -1,3 +1,4 @@
+import { cache } from "react";
 import {
   buildSessionUser,
   getSessionCookieFromStore,
@@ -5,7 +6,7 @@ import {
 } from "@/lib/auth/session";
 import type { SessionUser } from "@/lib/types";
 
-export async function auth(): Promise<{ user: SessionUser } | null> {
+export const auth = cache(async (): Promise<{ user: SessionUser } | null> => {
   const sessionCookie = await getSessionCookieFromStore();
   if (!sessionCookie) return null;
 
@@ -29,7 +30,7 @@ export async function auth(): Promise<{ user: SessionUser } | null> {
   const user = await buildSessionUser(decoded.uid);
   if (!user) return null;
   return { user };
-}
+});
 
 export async function signOut(): Promise<void> {
   const { clearSessionCookie, getSessionCookieFromStore, revokeSession } = await import(

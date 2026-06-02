@@ -10,14 +10,8 @@ import {
   assertTeacherCanAccessClass,
 } from "@/lib/queries/students";
 import { AuthError, ForbiddenError, requireAuth, requirePermission } from "@/lib/rbac/guards";
+import { attachmentSchema } from "@/lib/validators/attachments";
 import { ok, fail, type ActionResult, type AttachmentMeta } from "@/lib/types";
-
-const attachmentSchema = z.object({
-  url: z.string().url(),
-  name: z.string(),
-  size: z.number().optional(),
-  type: z.string().optional(),
-});
 
 const createHomeworkSchema = z.object({
   classId: z.string(),

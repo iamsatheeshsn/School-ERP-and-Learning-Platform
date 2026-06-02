@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   getMessages,
+  getThreads,
   markThreadRead,
   sendMessage,
 } from "@/actions/messages";
@@ -111,6 +112,10 @@ export function useMessagesPanel({
   );
 
   useEffect(() => {
+    setThreads(initialThreads);
+  }, [initialThreads]);
+
+  useEffect(() => {
     if (initialThreads[0]?.id && messages.length === 0 && selectedThread) {
       loadMessages(selectedThread);
     }
@@ -149,6 +154,32 @@ export function useMessagesPanel({
     threads.map((t) => t.id),
     handleStreamEvent,
     threads.length > 0
+  );
+
+  const refreshThreads = useCallback(
+    async (selectId?: string) => {
+      const result = await getThreads();
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      const next = result.data as ThreadItem[];
+      setThreads(next);
+
+      if (selectId) {
+        loadMessages(selectId);
+        return;
+      }
+
+      if (next[0]?.id) {
+        setSelectedThread(next[0].id);
+      } else {
+        setSelectedThread(null);
+        setMessages([]);
+      }
+    },
+    [loadMessages]
   );
 
   function handleSend(e: React.FormEvent) {
@@ -195,5 +226,6 @@ export function useMessagesPanel({
     isPending,
     loadMessages,
     handleSend,
+    refreshThreads,
   };
 }

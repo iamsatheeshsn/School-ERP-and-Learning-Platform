@@ -3,8 +3,8 @@
 import { useRef, useState } from "react";
 import { Paperclip, Upload, X } from "lucide-react";
 import { toast } from "sonner";
-import type { StorageFolder } from "@/lib/firebase/storage";
-import { uploadFileToStorage } from "@/lib/firebase/storage";
+import type { StorageFolder } from "@/lib/storage/types";
+import { uploadFile } from "@/lib/storage/client";
 import type { AttachmentMeta } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 
@@ -32,7 +32,7 @@ export function FileUploadField({
     try {
       const uploaded: AttachmentMeta[] = [];
       for (const file of Array.from(fileList)) {
-        const result = await uploadFileToStorage(folder, file);
+        const result = await uploadFile(folder, file);
         uploaded.push(result);
       }
       onChange([...attachments, ...uploaded]);

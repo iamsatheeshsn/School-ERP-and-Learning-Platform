@@ -19,7 +19,6 @@ type LoginFormProps = {
 
 type SessionResponse = {
   user?: { role?: Role };
-  refreshToken?: boolean;
   error?: string;
 };
 
@@ -67,14 +66,8 @@ export function LoginForm({ className }: LoginFormProps) {
     try {
       const auth = getClientAuth();
       const credential = await signInWithEmailAndPassword(auth, email, password);
-      let idToken = await credential.user.getIdToken();
-
-      let { sessionRes, session } = await postSession(idToken);
-
-      if (session.refreshToken) {
-        idToken = await credential.user.getIdToken(true);
-        ({ sessionRes, session } = await postSession(idToken));
-      }
+      const idToken = await credential.user.getIdToken(true);
+      const { sessionRes, session } = await postSession(idToken);
 
       if (!sessionRes.ok) {
         setError(session.error ?? "Could not start a session. Check server Firebase Admin settings.");

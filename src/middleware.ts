@@ -1,5 +1,5 @@
 import { ROLE_DASHBOARD } from "@/lib/types";
-import { AUTH_ROUTES, PUBLIC_ROUTES, ROLE_ROUTES } from "@/lib/rbac/permissions";
+import { PUBLIC_ROUTES, ROLE_ROUTES } from "@/lib/rbac/permissions";
 import { SESSION_COOKIE_NAME } from "@/lib/firebase/constants";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -15,6 +15,9 @@ function decodeSessionPayload(cookie: string): {
     const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const json = atob(base64);
     const payload = JSON.parse(json) as Record<string, unknown>;
+    const exp = payload.exp as number | undefined;
+    if (exp && exp * 1000 < Date.now()) return null;
+
     return {
       role: payload.role as Role | undefined,
       uid: (payload.user_id as string) ?? (payload.sub as string),
@@ -38,9 +41,6 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/payments/webhook");
 
   if (isPublic) {
-    if (isLoggedIn && AUTH_ROUTES.includes(pathname) && role) {
-      return NextResponse.redirect(new URL(ROLE_DASHBOARD[role], req.url));
-    }
     return NextResponse.next();
   }
 

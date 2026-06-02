@@ -3,6 +3,7 @@ import { getAuth, type Auth } from "firebase/auth";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 import {
   firebaseClientConfig,
+  getFirebaseConfigHelpMessage,
   getMissingFirebaseClientEnvKeys,
 } from "@/lib/firebase/config";
 
@@ -19,10 +20,7 @@ export function getClientApp(): FirebaseApp {
 
   const missing = getMissingFirebaseClientEnvKeys();
   if (missing.length > 0) {
-    throw new Error(
-      `Firebase client is not configured. Missing environment variables: ${missing.join(", ")}. ` +
-        "Set them in Netlify (Site settings → Environment variables) and redeploy."
-    );
+    throw new Error(getFirebaseConfigHelpMessage());
   }
 
   clientApp = initializeApp(firebaseConfig);

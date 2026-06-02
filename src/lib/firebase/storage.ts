@@ -1,17 +1,18 @@
 "use client";
 
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getClientAuth, getClientStorage } from "@/lib/firebase/client";
+import { ensureFirebaseClientUser } from "@/lib/firebase/client-auth";
+import { getClientStorage } from "@/lib/firebase/client";
 
-export type StorageFolder = "homework" | "messages" | "avatars";
+import type { StorageFolder } from "@/lib/storage/types";
+
+export type { StorageFolder } from "@/lib/storage/types";
 
 export async function uploadFileToStorage(
   folder: StorageFolder,
   file: File
 ): Promise<{ url: string; name: string; size: number; type: string }> {
-  const auth = getClientAuth();
-  const user = auth.currentUser;
-  if (!user) throw new Error("You must be signed in to upload files");
+  const user = await ensureFirebaseClientUser();
 
   const idToken = await user.getIdToken();
   await fetch("/api/auth/session", {

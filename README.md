@@ -129,6 +129,14 @@ Open `https://your-site.netlify.app/api/health` — both `firebaseClient.configu
 
 Then sign in with a seeded demo account (e.g. `admin@scholaros.demo` / `password123`).
 
+### PWA (parents)
+
+ScholarOS includes a web app manifest (`/manifest.json`). On mobile, open the parent dashboard in Chrome/Safari and use **Add to Home Screen** for an app-like experience. Push notifications require Firebase Cloud Messaging setup (not included in this MVP).
+
+### Multi-school SaaS
+
+The current deployment is **single-tenant** (one school per Firebase project). Multi-school isolation (`schoolId` on all records, subdomain routing, billing) is planned as a later phase.
+
 ## Demo Credentials
 
 Password for all accounts: **`password123`**
@@ -168,6 +176,26 @@ Password for all accounts: **`password123`**
 - Fee structures per class, auto-generated invoices
 - Parent portal with pay button (Razorpay stub)
 - Admin collection dashboard and overdue reminders
+
+### Exams & Gradebook
+- Admin schedules exams by class, subject, and term
+- Teachers enter marks in bulk; admin publishes results
+- Class ranks, grade letters, and sync to the gradebook
+- Student and parent portals for published results
+
+### Library
+- Book catalog with copies and availability
+- Issue/return workflow with overdue fines (₹10/day)
+- Student and parent loan history
+
+### Transport
+- Bus routes with stops and pickup times
+- Student route assignments
+- Parent and student route views
+
+### Staff HR
+- Teachers submit leave requests
+- Admin approve/reject workflow with notifications
 
 ### Student Analytics
 - Per-student grade trends, attendance, homework completion, subject radar

@@ -26,12 +26,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Custom claims are set in buildSessionUser. The ID token must be refreshed
-    // on the client before we mint a session cookie, or middleware won't see role.
-    if (!decoded.role) {
-      return NextResponse.json({ user, refreshToken: true });
-    }
-
     const sessionCookie = await createSessionCookie(idToken);
     await setSessionCookie(sessionCookie);
 

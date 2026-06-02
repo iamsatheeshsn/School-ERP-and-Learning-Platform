@@ -20,6 +20,16 @@ export const PERMISSIONS = {
   "analytics:read": [Role.ADMIN, Role.TEACHER],
   "report-cards:read": [Role.ADMIN, Role.TEACHER, Role.PARENT, Role.STUDENT],
   "report-cards:write": [Role.ADMIN, Role.TEACHER],
+  "exams:read": [Role.ADMIN, Role.TEACHER, Role.PARENT, Role.STUDENT],
+  "exams:write": [Role.ADMIN, Role.TEACHER],
+  "exams:manage": [Role.ADMIN],
+  "library:read": [Role.ADMIN, Role.TEACHER, Role.PARENT, Role.STUDENT],
+  "library:write": [Role.ADMIN],
+  "transport:read": [Role.ADMIN, Role.PARENT, Role.STUDENT],
+  "transport:write": [Role.ADMIN],
+  "leave:read": [Role.ADMIN, Role.TEACHER],
+  "leave:write": [Role.TEACHER],
+  "leave:manage": [Role.ADMIN],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

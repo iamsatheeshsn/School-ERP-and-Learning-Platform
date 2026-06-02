@@ -25,6 +25,13 @@ export const COLLECTIONS = {
   broadcasts: "broadcasts",
   auditLogs: "auditLogs",
   timetablePeriods: "timetablePeriods",
+  exams: "exams",
+  examResults: "examResults",
+  books: "books",
+  libraryIssues: "libraryIssues",
+  transportRoutes: "transportRoutes",
+  transportAssignments: "transportAssignments",
+  leaveRequests: "leaveRequests",
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

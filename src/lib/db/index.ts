@@ -51,6 +51,13 @@ function buildDb() {
     broadcast: createModelProxy("broadcast"),
     auditLog: createModelProxy("auditLog"),
     timetablePeriod: createModelProxy("timetablePeriod"),
+    exam: createModelProxy("exam"),
+    examResult: createModelProxy("examResult"),
+    book: createModelProxy("book"),
+    libraryIssue: createModelProxy("libraryIssue"),
+    transportRoute: createModelProxy("transportRoute"),
+    transportAssignment: createModelProxy("transportAssignment"),
+    leaveRequest: createModelProxy("leaveRequest"),
   };
 }
 

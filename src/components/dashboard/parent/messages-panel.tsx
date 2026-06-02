@@ -3,23 +3,28 @@
 import { MessageCompose } from "@/components/dashboard/messages/message-compose";
 import { MessageList } from "@/components/dashboard/messages/message-list";
 import { MessageThreadList } from "@/components/dashboard/messages/message-thread-list";
+import { ParentNewMessageDialog } from "@/components/dashboard/parent/new-message-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   useMessagesPanel,
   type ThreadItem,
 } from "@/hooks/use-messages-panel";
+import type { ParentMessageContact } from "@/lib/queries/messages";
 
 type ParentMessagesPanelProps = {
   threads: ThreadItem[];
+  contacts: ParentMessageContact[];
   currentUserId: string;
 };
 
 export function ParentMessagesPanel({
   threads: initialThreads,
+  contacts,
   currentUserId,
 }: ParentMessagesPanelProps) {
   const {
     threads,
+    activeThread,
     selectedThread,
     messages,
     body,
@@ -29,6 +34,7 @@ export function ParentMessagesPanel({
     isPending,
     loadMessages,
     handleSend,
+    refreshThreads,
   } = useMessagesPanel({ initialThreads, currentUserId });
 
   return (
@@ -38,6 +44,13 @@ export function ParentMessagesPanel({
         threads={threads}
         selectedThreadId={selectedThread}
         onSelect={loadMessages}
+        headerAction={
+          <ParentNewMessageDialog
+            contacts={contacts}
+            onCreated={(threadId) => void refreshThreads(threadId)}
+          />
+        }
+        emptyMessage="Start a conversation using New message."
         renderSubtitle={(thread) =>
           `${thread.student.user.name} · Teacher: ${thread.teacher?.user.name ?? ""}`
         }
@@ -45,19 +58,40 @@ export function ParentMessagesPanel({
 
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle className="font-heading text-lg">Messages</CardTitle>
+          <CardTitle className="font-heading text-lg">
+            {activeThread?.subject ?? "Select a conversation"}
+          </CardTitle>
+          {activeThread && (
+            <p className="text-sm text-muted-foreground">
+              {activeThread.student.user.name} ·{" "}
+              {activeThread.teacher?.user.name ?? "Teacher"}
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
-          <MessageList messages={messages} currentUserId={currentUserId} />
-          <MessageCompose
-            body={body}
-            onBodyChange={setBody}
-            attachments={attachments}
-            onAttachmentsChange={setAttachments}
-            onSubmit={handleSend}
-            disabled={isPending || !selectedThread}
-            placeholder="Reply to teacher..."
-          />
+          {selectedThread ? (
+            <>
+              <MessageList
+                messages={messages}
+                currentUserId={currentUserId}
+                className="min-h-[280px]"
+              />
+              <MessageCompose
+                body={body}
+                onBodyChange={setBody}
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
+                onSubmit={handleSend}
+                disabled={isPending}
+                placeholder="Reply to teacher..."
+              />
+            </>
+          ) : (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              Choose a conversation from the list or send a new message to a
+              teacher.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

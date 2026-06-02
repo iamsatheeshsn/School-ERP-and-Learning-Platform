@@ -221,6 +221,60 @@ export const MODEL_DEFS: Record<string, ModelDef> = {
       teacher: { model: "teacherProfile", foreignKey: "id", localKey: "teacherId" },
     },
   },
+  exam: {
+    collection: "exams",
+    relations: {
+      class: { model: "class", foreignKey: "id", localKey: "classId" },
+      subject: { model: "subject", foreignKey: "id", localKey: "subjectId" },
+      creator: { model: "user", foreignKey: "id", localKey: "createdBy" },
+      results: { model: "examResult", foreignKey: "examId", many: true },
+    },
+  },
+  examResult: {
+    collection: "examResults",
+    compoundUniques: { examId_studentId: ["examId", "studentId"] },
+    relations: {
+      exam: { model: "exam", foreignKey: "id", localKey: "examId" },
+      student: { model: "studentProfile", foreignKey: "id", localKey: "studentId" },
+    },
+  },
+  book: {
+    collection: "books",
+    compoundUniques: { schoolId_isbn: ["schoolId", "isbn"] },
+    relations: {
+      school: { model: "school", foreignKey: "id", localKey: "schoolId" },
+      issues: { model: "libraryIssue", foreignKey: "bookId", many: true },
+    },
+  },
+  libraryIssue: {
+    collection: "libraryIssues",
+    relations: {
+      book: { model: "book", foreignKey: "id", localKey: "bookId" },
+      student: { model: "studentProfile", foreignKey: "id", localKey: "studentId" },
+    },
+  },
+  transportRoute: {
+    collection: "transportRoutes",
+    relations: {
+      school: { model: "school", foreignKey: "id", localKey: "schoolId" },
+      assignments: { model: "transportAssignment", foreignKey: "routeId", many: true },
+    },
+  },
+  transportAssignment: {
+    collection: "transportAssignments",
+    compoundUniques: { studentId: ["studentId"] },
+    relations: {
+      route: { model: "transportRoute", foreignKey: "id", localKey: "routeId" },
+      student: { model: "studentProfile", foreignKey: "id", localKey: "studentId" },
+    },
+  },
+  leaveRequest: {
+    collection: "leaveRequests",
+    relations: {
+      teacher: { model: "teacherProfile", foreignKey: "id", localKey: "teacherId" },
+      reviewer: { model: "user", foreignKey: "id", localKey: "reviewedBy" },
+    },
+  },
 };
 
 export const MODEL_NAME_MAP: Record<string, string> = {
@@ -250,4 +304,11 @@ export const MODEL_NAME_MAP: Record<string, string> = {
   broadcast: "broadcast",
   auditLog: "auditLog",
   timetablePeriod: "timetablePeriod",
+  exam: "exam",
+  examResult: "examResult",
+  book: "book",
+  libraryIssue: "libraryIssue",
+  transportRoute: "transportRoute",
+  transportAssignment: "transportAssignment",
+  leaveRequest: "leaveRequest",
 };

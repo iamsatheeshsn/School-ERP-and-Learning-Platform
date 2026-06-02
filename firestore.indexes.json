@@ -53,6 +53,23 @@
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "readAt", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "exams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "examDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "examResults",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "examId", "order": "ASCENDING" },
+        { "fieldPath": "rank", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

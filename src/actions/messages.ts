@@ -7,17 +7,14 @@ import { db } from "@/lib/db";
 import { draftParentUpdate } from "@/lib/ai/services";
 import { sendBroadcast as sendBroadcastEmail } from "@/lib/email/resend";
 import { assertThreadAccess } from "@/lib/queries/messages";
-import { assertCanAccessStudent } from "@/lib/queries/students";
+import {
+  assertCanAccessStudent,
+  isTeacherOfStudent,
+} from "@/lib/queries/students";
 import { publishThreadEvent } from "@/lib/realtime/sse-hub";
 import { AuthError, ForbiddenError, requireAuth, requirePermission } from "@/lib/rbac/guards";
+import { attachmentSchema, normalizeAttachments } from "@/lib/validators/attachments";
 import { ok, fail, type ActionResult, type AttachmentMeta } from "@/lib/types";
-
-const attachmentSchema = z.object({
-  url: z.string().url(),
-  name: z.string(),
-  size: z.number().optional(),
-  type: z.string().optional(),
-});
 
 const sendMessageSchema = z.object({
   threadId: z.string(),
@@ -30,6 +27,14 @@ const createThreadSchema = z.object({
   teacherId: z.string(),
   parentId: z.string(),
   subject: z.string().min(1),
+});
+
+const startParentConversationSchema = z.object({
+  studentId: z.string(),
+  teacherId: z.string(),
+  subject: z.string().min(1),
+  body: z.string().min(1),
+  attachments: z.array(attachmentSchema).optional(),
 });
 
 const draftAiSchema = z.object({
@@ -130,7 +135,14 @@ export async function getMessages(threadId: string): Promise<ActionResult<unknow
       orderBy: { createdAt: "asc" },
     });
 
-    return ok(messages);
+    return ok(
+      messages.map((message) => ({
+        ...message,
+        attachments: normalizeAttachments(
+          (message as { attachments?: unknown }).attachments
+        ),
+      }))
+    );
   } catch (error) {
     return handleError(error);
   }
@@ -283,6 +295,52 @@ export async function markRead(messageId: string): Promise<ActionResult<void>> {
 
     revalidateMessagePaths();
     return ok(undefined);
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+export async function startParentConversation(
+  input: z.infer<typeof startParentConversationSchema>
+): Promise<ActionResult<{ threadId: string }>> {
+  try {
+    const user = await requirePermission("messages:write");
+    if (user.role !== Role.PARENT || !user.parentProfileId) {
+      throw new ForbiddenError();
+    }
+
+    const parsed = startParentConversationSchema.safeParse(input);
+    if (!parsed.success) {
+      return fail(parsed.error.issues[0]?.message ?? "Invalid input");
+    }
+
+    await assertCanAccessStudent(user, parsed.data.studentId);
+
+    if (
+      !(await isTeacherOfStudent(
+        parsed.data.teacherId,
+        parsed.data.studentId
+      ))
+    ) {
+      return fail("Selected teacher does not teach this student's class");
+    }
+
+    const threadResult = await createThread({
+      studentId: parsed.data.studentId,
+      teacherId: parsed.data.teacherId,
+      parentId: user.parentProfileId,
+      subject: parsed.data.subject,
+    });
+    if (!threadResult.success) return threadResult;
+
+    const messageResult = await sendMessage({
+      threadId: threadResult.data.id,
+      body: parsed.data.body,
+      attachments: parsed.data.attachments,
+    });
+    if (!messageResult.success) return messageResult;
+
+    return ok({ threadId: threadResult.data.id });
   } catch (error) {
     return handleError(error);
   }

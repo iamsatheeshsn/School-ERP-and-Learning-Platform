@@ -38,6 +38,10 @@ export enum NotificationType {
   MESSAGE = "MESSAGE",
   BROADCAST = "BROADCAST",
   REPORT_CARD = "REPORT_CARD",
+  EXAM_RESULT = "EXAM_RESULT",
+  LIBRARY = "LIBRARY",
+  TRANSPORT = "TRANSPORT",
+  LEAVE = "LEAVE",
   GENERAL = "GENERAL",
 }
 
@@ -47,4 +51,28 @@ export enum ExamType {
   FINAL = "FINAL",
   QUIZ = "QUIZ",
   ASSIGNMENT = "ASSIGNMENT",
+}
+
+export enum ExamStatus {
+  SCHEDULED = "SCHEDULED",
+  PUBLISHED = "PUBLISHED",
+}
+
+export enum LibraryIssueStatus {
+  ISSUED = "ISSUED",
+  RETURNED = "RETURNED",
+  OVERDUE = "OVERDUE",
+}
+
+export enum LeaveStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
+export enum LeaveType {
+  CASUAL = "CASUAL",
+  SICK = "SICK",
+  EARNED = "EARNED",
+  OTHER = "OTHER",
 }
