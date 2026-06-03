@@ -99,6 +99,10 @@ export function useMessagesPanel({
 
         if (messagesResult.success) {
           setMessages(messagesResult.data as ChatMessage[]);
+        } else if (messagesResult.error === "Unauthorized") {
+          toast.error("Session expired. Please sign in again.");
+        } else {
+          toast.error(messagesResult.error);
         }
 
         setThreads((prev) =>
@@ -209,7 +213,11 @@ export function useMessagesPanel({
           setMessages(messagesResult.data as ChatMessage[]);
         }
       } else {
-        toast.error(result.error);
+        toast.error(
+          result.error === "Unauthorized"
+            ? "Session expired. Please sign in again."
+            : result.error
+        );
       }
     });
   }
