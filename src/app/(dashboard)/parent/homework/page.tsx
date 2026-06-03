@@ -20,14 +20,14 @@ export default async function ParentHomeworkPage() {
   const homeworkByChild = await Promise.all(
     children.map(async (child) => {
       const result = await getHomeworkForStudent(child.id);
-      return {
-        child,
-        submissions: result.success ? result.data : [],
-      };
+      return { child, result };
     })
   );
 
-  const hasHomework = homeworkByChild.some((h) => h.submissions.length > 0);
+  const hasFetchError = homeworkByChild.some(({ result }) => !result.success);
+  const hasHomework = homeworkByChild.some(
+    ({ result }) => result.success && result.data.length > 0
+  );
 
   return (
     <div className="space-y-6">
@@ -36,21 +36,40 @@ export default async function ParentHomeworkPage() {
         description="Track homework assignments for your children."
       />
 
-      {!hasHomework ? (
+      {children.length === 0 ? (
+        <EmptyState
+          icon={BookOpen}
+          title="No children linked"
+          description="Link your account to view homework assignments."
+        />
+      ) : hasFetchError ? (
+        homeworkByChild.map(({ child, result }) =>
+          !result.success ? (
+            <Card key={child.id}>
+              <CardHeader>
+                <CardTitle className="font-heading text-lg">{child.user.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-destructive">{result.error}</p>
+              </CardContent>
+            </Card>
+          ) : null
+        )
+      ) : !hasHomework ? (
         <EmptyState
           icon={BookOpen}
           title="No homework"
           description="Homework assignments will appear here when teachers post them."
         />
       ) : (
-        homeworkByChild.map(({ child, submissions }) =>
-          submissions.length > 0 ? (
+        homeworkByChild.map(({ child, result }) =>
+          result.success && result.data.length > 0 ? (
             <div key={child.id} className="space-y-3">
               <h2 className="font-heading text-lg font-semibold">
                 {child.user.name}
               </h2>
               <div className="grid gap-3">
-                {(submissions as {
+                {(result.data as {
                   id: string;
                   status: string;
                   homework: {
@@ -70,7 +89,7 @@ export default async function ParentHomeworkPage() {
                           {format(new Date(sub.homework.dueDate), "MMM d, yyyy")}
                         </p>
                       </div>
-                      <Badge>{sub.status}</Badge>
+                      <Badge variant="secondary">{sub.status}</Badge>
                     </CardHeader>
                     <CardContent />
                   </Card>

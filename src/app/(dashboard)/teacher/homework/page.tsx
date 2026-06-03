@@ -31,6 +31,7 @@ export default async function TeacherHomeworkPage() {
     classIds.map((id) => getHomeworkByClass(id))
   );
 
+  const fetchError = homeworkResults.find((r) => !r.success);
   const homework = homeworkResults
     .filter((r) => r.success)
     .flatMap((r) => r.data as object[])
@@ -46,6 +47,10 @@ export default async function TeacherHomeworkPage() {
         title="Homework"
         description="Create assignments, generate AI worksheets, and track submissions."
       />
+
+      {fetchError && (
+        <p className="text-sm text-destructive">{fetchError.error}</p>
+      )}
 
       {classes.length === 0 ? (
         <EmptyState

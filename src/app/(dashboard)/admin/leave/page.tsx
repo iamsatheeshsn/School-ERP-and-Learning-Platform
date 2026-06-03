@@ -18,6 +18,11 @@ export default async function AdminLeavePage() {
         title="Staff leave"
         description="Review and approve teacher leave requests."
       />
+
+      {!result.success && (
+        <p className="text-sm text-destructive">{result.error}</p>
+      )}
+
       <LeaveApprovalPanel requests={requests} />
     </div>
   );

@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { createPaymentOrder, confirmPayment } from "@/actions/fees";
-import { Badge } from "@/components/ui/badge";
+import { InvoiceStatusBadge } from "@/components/shared/invoice-status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -116,11 +116,7 @@ export function ParentFeesPanel({ invoices }: ParentFeesPanelProps) {
                 {format(new Date(invoice.dueDate), "MMM d, yyyy")}
               </p>
             </div>
-            <Badge
-              variant={invoice.status === "PAID" ? "default" : "secondary"}
-            >
-              {invoice.status}
-            </Badge>
+            <InvoiceStatusBadge status={invoice.status} />
           </CardHeader>
           <CardContent className="flex items-center justify-between">
             <p className="font-heading text-xl font-semibold">

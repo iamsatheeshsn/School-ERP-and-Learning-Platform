@@ -1,5 +1,7 @@
 import { Role } from "@/lib/types/enums";
 import { redirect } from "next/navigation";
+import { CalendarDays } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { db } from "@/lib/db";
@@ -24,7 +26,11 @@ export default async function TeacherTimetablePage() {
     <div className="space-y-6">
       <PageHeader title="My timetable" description="Your weekly teaching schedule." />
       {periods.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No periods assigned yet.</p>
+        <EmptyState
+          icon={CalendarDays}
+          title="No periods assigned"
+          description="Your teaching schedule will appear here once the admin builds the timetable."
+        />
       ) : (
         <div className="grid gap-3">
           {periods.map((period) => (

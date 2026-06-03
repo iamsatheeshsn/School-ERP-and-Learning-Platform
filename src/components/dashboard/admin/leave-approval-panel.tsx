@@ -5,7 +5,8 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { LeaveStatus } from "@/lib/types/enums";
 import { reviewLeaveRequest } from "@/actions/leave";
-import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/shared/empty-state";
+import { LeaveStatusBadge } from "@/components/shared/leave-status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CalendarDays } from "lucide-react";
 
 type LeaveRow = {
   id: string;
@@ -45,7 +47,12 @@ export function LeaveApprovalPanel({ requests }: { requests: LeaveRow[] }) {
       </CardHeader>
       <CardContent>
         {requests.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No leave requests.</p>
+          <EmptyState
+            icon={CalendarDays}
+            title="No leave requests"
+            description="Teacher leave requests will appear here for review."
+            className="py-10"
+          />
         ) : (
           <div className="rounded-xl border border-border/80 overflow-hidden">
             <Table>
@@ -71,17 +78,7 @@ export function LeaveApprovalPanel({ requests }: { requests: LeaveRow[] }) {
                     </TableCell>
                     <TableCell>{req.type.replace(/_/g, " ")}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          req.status === LeaveStatus.APPROVED
-                            ? "default"
-                            : req.status === LeaveStatus.REJECTED
-                              ? "destructive"
-                              : "secondary"
-                        }
-                      >
-                        {req.status}
-                      </Badge>
+                      <LeaveStatusBadge status={req.status} />
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       {req.status === LeaveStatus.PENDING && (

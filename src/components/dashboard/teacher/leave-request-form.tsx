@@ -5,7 +5,8 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { LeaveType } from "@/lib/types/enums";
 import { createLeaveRequest } from "@/actions/leave";
-import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/shared/empty-state";
+import { LeaveStatusBadge } from "@/components/shared/leave-status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CalendarDays } from "lucide-react";
 
 type LeaveRow = {
   id: string;
@@ -45,10 +47,18 @@ export function LeaveRequestForm({ requests }: { requests: LeaveRow[] }) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+      toast.error("End date must be on or after start date");
+      return;
+    }
+
     startTransition(async () => {
       const result = await createLeaveRequest({ startDate, endDate, type, reason });
       if (result.success) {
         toast.success("Leave request submitted");
+        setStartDate("");
+        setEndDate("");
         setReason("");
       } else {
         toast.error(result.error);
@@ -67,11 +77,24 @@ export function LeaveRequestForm({ requests }: { requests: LeaveRow[] }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="start">From</Label>
-                <Input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+                <Input
+                  id="start"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="end">To</Label>
-                <Input id="end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+                <Input
+                  id="end"
+                  type="date"
+                  value={endDate}
+                  min={startDate || undefined}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  required
+                />
               </div>
             </div>
             <div className="space-y-2">
@@ -87,7 +110,13 @@ export function LeaveRequestForm({ requests }: { requests: LeaveRow[] }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="reason">Reason</Label>
-              <Textarea id="reason" value={reason} onChange={(e) => setReason(e.target.value)} required minLength={3} />
+              <Textarea
+                id="reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                required
+                minLength={3}
+              />
             </div>
             <Button type="submit" disabled={isPending}>Submit request</Button>
           </form>
@@ -100,7 +129,12 @@ export function LeaveRequestForm({ requests }: { requests: LeaveRow[] }) {
         </CardHeader>
         <CardContent>
           {requests.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No leave requests yet.</p>
+            <EmptyState
+              icon={CalendarDays}
+              title="No leave requests"
+              description="Submitted requests and their status will appear here."
+              className="py-10"
+            />
           ) : (
             <div className="rounded-xl border border-border/80 overflow-hidden">
               <Table>
@@ -120,7 +154,7 @@ export function LeaveRequestForm({ requests }: { requests: LeaveRow[] }) {
                       </TableCell>
                       <TableCell>{req.type.replace(/_/g, " ")}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{req.status}</Badge>
+                        <LeaveStatusBadge status={req.status} />
                       </TableCell>
                     </TableRow>
                   ))}

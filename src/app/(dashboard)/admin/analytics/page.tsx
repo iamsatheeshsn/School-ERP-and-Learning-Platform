@@ -103,9 +103,12 @@ export default async function AdminAnalyticsPage() {
           {chartData.length > 0 ? (
             <AnalyticsCharts data={chartData} />
           ) : (
-            <p className="text-sm text-muted-foreground">
-              No analytics data to chart yet.
-            </p>
+            <EmptyState
+              icon={BarChart3}
+              title="No chart data yet"
+              description="Analytics will appear once classes have attendance, homework, and grade data."
+              className="py-10"
+            />
           )}
         </CardContent>
       </Card>

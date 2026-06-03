@@ -13,13 +13,22 @@ export default async function StudentLibraryPage() {
   }
 
   const result = await getStudentLibraryIssues(user.studentProfileId);
-  const issues = result.success ? (result.data as Parameters<typeof LibraryIssuesView>[0]["issues"]) : [];
+  const issues = result.success
+    ? (result.data as Parameters<typeof LibraryIssuesView>[0]["issues"])
+    : [];
 
   return (
     <div className="space-y-6">
       <PageHeader title="Library" description="Books you have borrowed." />
-      {issues.length === 0 ? (
-        <EmptyState icon={BookOpen} title="No books" description="Issued books will appear here." />
+
+      {!result.success ? (
+        <p className="text-sm text-destructive">{result.error}</p>
+      ) : issues.length === 0 ? (
+        <EmptyState
+          icon={BookOpen}
+          title="No books"
+          description="Issued books will appear here."
+        />
       ) : (
         <LibraryIssuesView title="My loans" issues={issues} />
       )}

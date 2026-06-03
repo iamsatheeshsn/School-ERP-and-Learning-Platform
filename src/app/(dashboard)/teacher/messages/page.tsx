@@ -27,7 +27,9 @@ export default async function TeacherMessagesPage() {
         description="Communicate with parents and use AI to draft updates."
       />
 
-      {!threadsResult.success || (threads as unknown[]).length === 0 ? (
+      {!threadsResult.success ? (
+        <p className="text-sm text-destructive">{threadsResult.error}</p>
+      ) : (threads as unknown[]).length === 0 ? (
         <EmptyState
           icon={MessageSquare}
           title="No message threads"

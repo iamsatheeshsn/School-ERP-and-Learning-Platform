@@ -22,7 +22,7 @@ export default async function StudentReportCardsPage() {
       />
 
       {!result.success ? (
-        <p className="text-muted-foreground">{result.error}</p>
+        <p className="text-sm text-destructive">{result.error}</p>
       ) : cards.length === 0 ? (
         <EmptyState
           icon={FileText}

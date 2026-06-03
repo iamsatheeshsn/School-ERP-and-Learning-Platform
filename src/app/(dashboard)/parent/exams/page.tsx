@@ -46,13 +46,17 @@ export default async function ParentExamsPage() {
         description="View published exam results for your children."
       />
 
-      {groups.length === 0 ? (
+      {!result.success && (
+        <p className="text-sm text-destructive">{result.error}</p>
+      )}
+
+      {result.success && groups.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
           title="No results yet"
           description="Exam results will appear here after they are published."
         />
-      ) : (
+      ) : result.success ? (
         groups.map((group) => (
           <StudentExamResults
             key={group.student.user.name}
@@ -60,7 +64,7 @@ export default async function ParentExamsPage() {
             items={group.exams}
           />
         ))
-      )}
+      ) : null}
     </div>
   );
 }

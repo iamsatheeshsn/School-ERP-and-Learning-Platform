@@ -20,11 +20,14 @@ export default async function ParentReportCardsPage() {
   const reportCardsByChild = await Promise.all(
     children.map(async (child) => {
       const result = await getReportCardsForStudent(child.id);
-      return { child, cards: result.success ? result.data : [] };
+      return { child, result };
     })
   );
 
-  const hasCards = reportCardsByChild.some((r) => r.cards.length > 0);
+  const hasFetchError = reportCardsByChild.some(({ result }) => !result.success);
+  const hasCards = reportCardsByChild.some(
+    ({ result }) => result.success && result.data.length > 0
+  );
 
   return (
     <div className="space-y-6">
@@ -33,20 +36,39 @@ export default async function ParentReportCardsPage() {
         description="View published report cards for your children."
       />
 
-      {!hasCards ? (
+      {children.length === 0 ? (
+        <EmptyState
+          icon={FileText}
+          title="No children linked"
+          description="Link your account to view report cards."
+        />
+      ) : hasFetchError ? (
+        reportCardsByChild.map(({ child, result }) =>
+          !result.success ? (
+            <Card key={child.id}>
+              <CardHeader>
+                <CardTitle className="font-heading text-lg">{child.user.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-destructive">{result.error}</p>
+              </CardContent>
+            </Card>
+          ) : null
+        )
+      ) : !hasCards ? (
         <EmptyState
           icon={FileText}
           title="No report cards yet"
           description="Published report cards will appear here when teachers release them."
         />
       ) : (
-        reportCardsByChild.map(({ child, cards }) =>
-          cards.length > 0 ? (
+        reportCardsByChild.map(({ child, result }) =>
+          result.success && result.data.length > 0 ? (
             <div key={child.id} className="space-y-3">
               <h2 className="font-heading text-lg font-semibold">
                 {child.user.name}
               </h2>
-              {(cards as {
+              {(result.data as {
                 id: string;
                 term: string;
                 status: string;
@@ -67,7 +89,7 @@ export default async function ParentReportCardsPage() {
                         </p>
                       )}
                     </div>
-                    <Badge>{rc.status}</Badge>
+                    <Badge variant="secondary">{rc.status}</Badge>
                   </CardHeader>
                   {rc.aiSummary && (
                     <CardContent>

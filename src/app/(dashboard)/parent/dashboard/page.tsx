@@ -1,4 +1,4 @@
-import { Role } from "@/lib/types/enums";
+import { Role, FeeInvoiceStatus } from "@/lib/types/enums";
 import { Baby, BookOpen, ClipboardCheck, Wallet } from "lucide-react";
 import { getParentChildrenAttendanceSummary } from "@/actions/attendance";
 import { getInvoicesForParent } from "@/actions/fees";
@@ -35,7 +35,14 @@ export default async function ParentDashboardPage() {
   const invoices = invoicesResult.success
     ? (invoicesResult.data as { status: string }[])
     : [];
-  const pendingFees = invoices.filter((inv) => inv.status === "PENDING").length;
+  const outstandingFees = invoices.filter(
+    (inv) =>
+      inv.status === FeeInvoiceStatus.PENDING ||
+      inv.status === FeeInvoiceStatus.OVERDUE
+  ).length;
+  const overdueFees = invoices.filter(
+    (inv) => inv.status === FeeInvoiceStatus.OVERDUE
+  ).length;
 
   const homework = homeworkResult.success
     ? (homeworkResult.data as { status: string }[])
@@ -49,11 +56,20 @@ export default async function ParentDashboardPage() {
         description="Stay connected with your children's progress."
       />
 
+      {!invoicesResult.success && (
+        <p className="text-sm text-destructive">{invoicesResult.error}</p>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Children" value={children.length} icon={Baby} accent="fuchsia" />
         <StatCard title="Pending Homework" value={pendingHomework} icon={BookOpen} accent="sky" />
         <StatCard title="Attendance Alerts" value={flagged} icon={ClipboardCheck} accent="rose" />
-        <StatCard title="Pending Fees" value={pendingFees} icon={Wallet} accent="amber" />
+        <StatCard
+          title={overdueFees > 0 ? "Overdue Fees" : "Outstanding Fees"}
+          value={overdueFees > 0 ? overdueFees : outstandingFees}
+          icon={Wallet}
+          accent={overdueFees > 0 ? "rose" : "amber"}
+        />
       </div>
 
       {unreadResult.success && unreadResult.data.count > 0 && (

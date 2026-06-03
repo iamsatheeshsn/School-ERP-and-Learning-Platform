@@ -115,15 +115,38 @@ export function TransportManager({ schoolId, routes, students }: TransportManage
               <Label>Driver name</Label>
               <Input value={driverName} onChange={(e) => setDriverName(e.target.value)} required />
             </div>
-            <div className="flex gap-2">
-              <Input placeholder="Stop name" value={stopName} onChange={(e) => setStopName(e.target.value)} />
-              <Input type="time" value={stopTime} onChange={(e) => setStopTime(e.target.value)} className="w-32" />
-              <Button type="button" variant="outline" onClick={addStop}>Add stop</Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Input
+                placeholder="Stop name"
+                value={stopName}
+                onChange={(e) => setStopName(e.target.value)}
+                className="flex-1"
+              />
+              <Input
+                type="time"
+                value={stopTime}
+                onChange={(e) => setStopTime(e.target.value)}
+                className="w-full sm:w-32"
+              />
+              <Button type="button" variant="outline" onClick={addStop} className="w-full sm:w-auto">
+                Add stop
+              </Button>
             </div>
             {stops.length > 0 && (
-              <ul className="text-sm text-muted-foreground space-y-1">
+              <ul className="space-y-1 rounded-lg border border-border/60 p-3 text-sm text-muted-foreground">
                 {stops.map((s, i) => (
-                  <li key={i}>{s.name} — {s.pickupTime}</li>
+                  <li key={i} className="flex items-center justify-between gap-2">
+                    <span>{s.name} — {s.pickupTime}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setStops((prev) => prev.filter((_, idx) => idx !== i))}
+                    >
+                      Remove
+                    </Button>
+                  </li>
                 ))}
               </ul>
             )}

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { createBook, issueBook, returnBook } from "@/actions/library";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookOpen } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -143,6 +145,15 @@ export function LibraryManager({
           <CardTitle className="font-heading text-lg">Issue book</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {books.length === 0 ? (
+            <EmptyState
+              icon={BookOpen}
+              title="Catalog empty"
+              description="Add books before issuing them to students."
+              className="py-8"
+            />
+          ) : (
+          <>
           <div className="space-y-2">
             <Label>Book</Label>
             <Select value={issueBookId} onValueChange={(v) => v && setIssueBookId(v)}>
@@ -169,7 +180,47 @@ export function LibraryManager({
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={handleIssue} disabled={isPending || !issueBookId}>Issue</Button>
+          <Button onClick={handleIssue} disabled={isPending || !issueBookId || !issueStudentId}>
+            Issue
+          </Button>
+          </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="xl:col-span-2">
+        <CardHeader>
+          <CardTitle className="font-heading text-lg">Catalog</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {books.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No books in catalog yet.</p>
+          ) : (
+            <div className="rounded-xl border border-border/80 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Author</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Available</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {books.map((book) => (
+                    <TableRow key={book.id}>
+                      <TableCell className="font-medium">{book.title}</TableCell>
+                      <TableCell>{book.author}</TableCell>
+                      <TableCell>{book.category || "—"}</TableCell>
+                      <TableCell>
+                        {book.availableCopies} / {book.totalCopies}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -179,7 +230,12 @@ export function LibraryManager({
         </CardHeader>
         <CardContent>
           {activeIssues.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No books currently issued.</p>
+            <EmptyState
+              icon={BookOpen}
+              title="No active loans"
+              description="Issued books will appear here until they are returned."
+              className="py-8"
+            />
           ) : (
             <div className="rounded-xl border border-border/80 overflow-hidden">
               <Table>

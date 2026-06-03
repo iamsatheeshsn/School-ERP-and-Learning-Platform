@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   createFeeStructure,
   generateInvoices,
+  sendOverdueFeeReminders,
 } from "@/actions/fees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/shared/empty-state";
+import { Wallet } from "lucide-react";
 
 type FeesManagerProps = {
   classes: { id: string; name: string }[];
@@ -67,6 +70,24 @@ export function FeesManager({ classes, feeStructures }: FeesManagerProps) {
     });
   }
 
+  function handleSendReminders() {
+    startTransition(async () => {
+      const result = await sendOverdueFeeReminders();
+      if (result.success) {
+        const { synced, reminded, skipped } = result.data;
+        toast.success(
+          synced > 0
+            ? `Marked ${synced} overdue · sent ${reminded} reminder${reminded === 1 ? "" : "s"} (${skipped} skipped)`
+            : reminded > 0
+              ? `Sent ${reminded} reminder${reminded === 1 ? "" : "s"} (${skipped} skipped)`
+              : `No reminders sent (${skipped} skipped — already reminded recently)`
+        );
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
@@ -74,6 +95,11 @@ export function FeesManager({ classes, feeStructures }: FeesManagerProps) {
           <CardTitle className="font-heading text-lg">Create Fee Structure</CardTitle>
         </CardHeader>
         <CardContent>
+          {classes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Add classes before creating fee structures.
+            </p>
+          ) : (
           <form onSubmit={handleCreateStructure} className="space-y-4">
             <div className="space-y-2">
               <Label>Class</Label>
@@ -125,6 +151,7 @@ export function FeesManager({ classes, feeStructures }: FeesManagerProps) {
               Create structure
             </Button>
           </form>
+          )}
         </CardContent>
       </Card>
 
@@ -133,6 +160,15 @@ export function FeesManager({ classes, feeStructures }: FeesManagerProps) {
           <CardTitle className="font-heading text-lg">Generate Invoices</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {feeStructures.length === 0 ? (
+            <EmptyState
+              icon={Wallet}
+              title="No fee structures"
+              description="Create a fee structure first, then generate invoices for a class."
+              className="py-10"
+            />
+          ) : (
+          <>
           <div className="space-y-2">
             <Label>Fee structure</Label>
             <Select value={structureId} onValueChange={(v) => v && setStructureId(v)}>
@@ -153,6 +189,27 @@ export function FeesManager({ classes, feeStructures }: FeesManagerProps) {
             disabled={isPending || !structureId}
           >
             Generate invoices for class
+          </Button>
+          </>
+          )}
+        </CardContent>
+      </Card>
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle className="font-heading text-lg">Overdue reminders</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Marks past-due invoices as overdue and emails parents (respects notification
+            settings). Reminders are limited to once every 7 days per invoice.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSendReminders}
+            disabled={isPending}
+          >
+            Send overdue reminders
           </Button>
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-import { Role } from "@/lib/types/enums";
+import { Role, FeeInvoiceStatus } from "@/lib/types/enums";
 import { format } from "date-fns";
 import { Wallet } from "lucide-react";
 import { getInvoicesAdmin } from "@/actions/fees";
@@ -34,10 +34,12 @@ export default async function AdminFeesPage() {
         student: { user: { name: string }; class: { name: string } };
       }[])
     : [];
-  const paid = invoices.filter((inv) => inv.status === "PAID").length;
-  const pending = invoices.filter((inv) => inv.status === "PENDING").length;
+
+  const paid = invoices.filter((inv) => inv.status === FeeInvoiceStatus.PAID).length;
+  const pending = invoices.filter((inv) => inv.status === FeeInvoiceStatus.PENDING).length;
+  const overdue = invoices.filter((inv) => inv.status === FeeInvoiceStatus.OVERDUE).length;
   const totalCollected = invoices
-    .filter((inv) => inv.status === "PAID")
+    .filter((inv) => inv.status === FeeInvoiceStatus.PAID)
     .reduce((sum, inv) => sum + inv.amount, 0);
 
   const rows: InvoiceRow[] = invoices.map((inv) => ({
@@ -53,12 +55,17 @@ export default async function AdminFeesPage() {
     <div className="space-y-8">
       <PageHeader
         title="Fee Management"
-        description="Create fee structures, generate invoices, and track collections."
+        description="Create fee structures, generate invoices, track collections, and send overdue reminders."
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      {!invoicesResult.success && (
+        <p className="text-sm text-destructive">{invoicesResult.error}</p>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Paid Invoices" value={paid} icon={Wallet} accent="emerald" />
-        <StatCard title="Pending Invoices" value={pending} icon={Wallet} accent="amber" />
+        <StatCard title="Pending" value={pending} icon={Wallet} accent="amber" />
+        <StatCard title="Overdue" value={overdue} icon={Wallet} accent="rose" />
         <StatCard
           title="Total Collected"
           value={`₹${totalCollected.toLocaleString()}`}
@@ -77,15 +84,15 @@ export default async function AdminFeesPage() {
         }))}
       />
 
-      {rows.length === 0 ? (
+      {invoicesResult.success && rows.length === 0 ? (
         <EmptyState
           icon={Wallet}
           title="No invoices yet"
           description="Create a fee structure and generate invoices for students."
         />
-      ) : (
+      ) : invoicesResult.success ? (
         <InvoicesTable data={rows} />
-      )}
+      ) : null}
     </div>
   );
 }

@@ -25,7 +25,12 @@ export default async function StudentGradesPage() {
   });
 
   if (!result.success) {
-    return <p className="text-muted-foreground">{result.error}</p>;
+    return (
+      <div className="space-y-6">
+        <PageHeader title="My Grades" description="Subject grades and averages." />
+        <p className="text-sm text-destructive">{result.error}</p>
+      </div>
+    );
   }
 
   const { grades, averageGrade } = result.data;

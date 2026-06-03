@@ -52,6 +52,7 @@ export function useMessagesPanel({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [body, setBody] = useState("");
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const activeThread = threads.find((t) => t.id === selectedThread);
@@ -88,10 +89,11 @@ export function useMessagesPanel({
     [selectedThread]
   );
 
-  const loadMessages = useCallback(
-    (threadId: string) => {
-      setSelectedThread(threadId);
-      startTransition(async () => {
+  const loadMessages = useCallback((threadId: string) => {
+    setSelectedThread(threadId);
+    setMessagesLoading(true);
+    startTransition(async () => {
+      try {
         const [messagesResult] = await Promise.all([
           getMessages(threadId),
           markThreadRead(threadId),
@@ -110,10 +112,11 @@ export function useMessagesPanel({
             t.id === threadId ? { ...t, unreadCount: 0 } : t
           )
         );
-      });
-    },
-    []
-  );
+      } finally {
+        setMessagesLoading(false);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     setThreads(initialThreads);
@@ -222,17 +225,24 @@ export function useMessagesPanel({
     });
   }
 
+  function clearSelection() {
+    setSelectedThread(null);
+    setMessages([]);
+  }
+
   return {
     threads,
     activeThread,
     selectedThread,
     messages,
+    messagesLoading,
     body,
     setBody,
     attachments,
     setAttachments,
     isPending,
     loadMessages,
+    clearSelection,
     handleSend,
     refreshThreads,
   };

@@ -20,7 +20,7 @@ export default async function StudentHomeworkPage() {
       />
 
       {!result.success ? (
-        <p className="text-muted-foreground">{result.error}</p>
+        <p className="text-sm text-destructive">{result.error}</p>
       ) : submissions.length === 0 ? (
         <EmptyState
           icon={BookOpen}

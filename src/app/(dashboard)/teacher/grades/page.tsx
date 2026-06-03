@@ -13,7 +13,10 @@ export default async function TeacherGradesPage() {
 
   if (!contextResult.success) {
     return (
-      <p className="text-muted-foreground">{contextResult.error}</p>
+      <div className="space-y-6">
+        <PageHeader title="Grades" description="Enter and update student grades." />
+        <p className="text-sm text-destructive">{contextResult.error}</p>
+      </div>
     );
   }
 

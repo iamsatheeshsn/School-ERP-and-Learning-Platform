@@ -11,6 +11,7 @@ import {
   getParentChildren,
 } from "@/lib/queries/students";
 import { AuthError, ForbiddenError, requirePermission } from "@/lib/rbac/guards";
+import { processFeeReminders, syncOverdueInvoices, type ProcessFeeRemindersResult } from "@/lib/fees/overdue";
 import { ok, fail, type ActionResult } from "@/lib/types";
 
 const feeItemSchema = z.object({
@@ -151,6 +152,8 @@ export async function getInvoicesForParent(
 
     const targetIds = studentId ? [studentId] : childIds;
 
+    await syncOverdueInvoices();
+
     const invoices = await db.feeInvoice.findMany({
       where: { studentId: { in: targetIds } },
       include: {
@@ -176,6 +179,8 @@ export async function getInvoicesAdmin(filters?: {
   try {
     const user = await requirePermission("fees:read");
     if (user.role !== Role.ADMIN) throw new ForbiddenError();
+
+    await syncOverdueInvoices();
 
     const invoices = await db.feeInvoice.findMany({
       where: {
@@ -210,6 +215,8 @@ export async function createPaymentOrder(
     const user = await requirePermission("fees:read");
     const parsed = createPaymentOrderSchema.safeParse(input);
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
+
+    await syncOverdueInvoices();
 
     const invoice = await db.feeInvoice.findUnique({
       where: { id: parsed.data.invoiceId },
@@ -277,6 +284,23 @@ export async function confirmPayment(
 
     revalidateFeePaths();
     return ok({ invoiceId: invoice.id });
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+export async function sendOverdueFeeReminders(options?: {
+  force?: boolean;
+}): Promise<ActionResult<ProcessFeeRemindersResult>> {
+  try {
+    const user = await requirePermission("fees:write");
+    if (user.role !== Role.ADMIN) throw new ForbiddenError();
+
+    const result = await processFeeReminders(options);
+    revalidateFeePaths();
+    revalidatePath("/parent/dashboard");
+    revalidatePath("/parent/fees");
+    return ok(result);
   } catch (error) {
     return handleError(error);
   }

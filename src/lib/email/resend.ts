@@ -32,11 +32,22 @@ export async function sendAbsenceAlert(
   );
 }
 
-export async function sendFeeReminder(to: string, parentName: string, amount: number, dueDate: string) {
+export async function sendFeeReminder(
+  to: string,
+  parentName: string,
+  amount: number,
+  dueDate: string,
+  overdue = false
+) {
+  const subject = overdue ? "Overdue Fee Payment" : "Fee Payment Reminder";
+  const intro = overdue
+    ? "You have an <strong>overdue</strong> fee of"
+    : "You have an outstanding fee of";
+
   return sendEmail(
     to,
-    "Fee Payment Reminder",
-    `<p>Dear ${parentName},</p><p>You have an outstanding fee of <strong>₹${amount.toLocaleString("en-IN")}</strong> due by ${dueDate}.</p><p>Log in to ScholarOS to pay online.</p>`
+    subject,
+    `<p>Dear ${parentName},</p><p>${intro} <strong>₹${amount.toLocaleString("en-IN")}</strong> that was due by ${dueDate}.</p><p>Log in to ScholarOS to pay online.</p>`
   );
 }
 

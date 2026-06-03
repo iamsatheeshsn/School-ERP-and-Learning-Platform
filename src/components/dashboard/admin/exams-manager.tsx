@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { ExamType } from "@/lib/types/enums";
+import { ExamStatus } from "@/lib/types/enums";
 import { createExam, publishExam } from "@/actions/exams";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ClipboardList } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -79,7 +82,15 @@ export function ExamsManager({ classes, subjects, exams }: ExamsManagerProps) {
     });
   }
 
-  function handlePublish(examId: string) {
+  function handlePublish(examId: string, examName: string) {
+    if (
+      !window.confirm(
+        `Publish results for "${examName}"? Parents and students will be able to view marks.`
+      )
+    ) {
+      return;
+    }
+
     startTransition(async () => {
       const result = await publishExam(examId);
       if (result.success) {
@@ -97,6 +108,11 @@ export function ExamsManager({ classes, subjects, exams }: ExamsManagerProps) {
           <CardTitle className="font-heading text-lg">Schedule exam</CardTitle>
         </CardHeader>
         <CardContent>
+          {classes.length === 0 || subjects.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Add classes and subjects before scheduling exams.
+            </p>
+          ) : (
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="exam-name">Exam name</Label>
@@ -187,6 +203,7 @@ export function ExamsManager({ classes, subjects, exams }: ExamsManagerProps) {
               {isPending ? "Creating..." : "Schedule exam"}
             </Button>
           </form>
+          )}
         </CardContent>
       </Card>
 
@@ -196,7 +213,12 @@ export function ExamsManager({ classes, subjects, exams }: ExamsManagerProps) {
         </CardHeader>
         <CardContent>
           {exams.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No exams scheduled yet.</p>
+            <EmptyState
+              icon={ClipboardList}
+              title="No exams scheduled"
+              description="Schedule an exam to collect marks from teachers."
+              className="py-10"
+            />
           ) : (
             <div className="rounded-xl border border-border/80 overflow-hidden">
               <Table>
@@ -219,16 +241,16 @@ export function ExamsManager({ classes, subjects, exams }: ExamsManagerProps) {
                       </TableCell>
                       <TableCell>{exam.class.name}</TableCell>
                       <TableCell>
-                        <Badge variant={exam.status === "PUBLISHED" ? "default" : "secondary"}>
+                        <Badge variant={exam.status === ExamStatus.PUBLISHED ? "default" : "secondary"}>
                           {exam.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {exam.status !== "PUBLISHED" && (
+                        {exam.status !== ExamStatus.PUBLISHED && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handlePublish(exam.id)}
+                            onClick={() => handlePublish(exam.id, exam.name)}
                             disabled={isPending}
                           >
                             Publish

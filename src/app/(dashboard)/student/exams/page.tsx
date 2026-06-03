@@ -40,15 +40,19 @@ export default async function StudentExamsPage() {
         description="Published exam marks and class ranks."
       />
 
-      {items.length === 0 ? (
+      {!result.success && (
+        <p className="text-sm text-destructive">{result.error}</p>
+      )}
+
+      {result.success && items.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
           title="No results yet"
           description="Your exam results will appear here after they are published."
         />
-      ) : (
+      ) : result.success ? (
         <StudentExamResults title="My exams" items={items} />
-      )}
+      ) : null}
     </div>
   );
 }

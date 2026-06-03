@@ -2,6 +2,7 @@
 
 import { format } from "date-fns";
 import { Paperclip } from "lucide-react";
+import { LoadingSpinner } from "@/components/shared/loading-spinner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ChatMessage } from "@/hooks/use-messages-panel";
 import type { AttachmentMeta } from "@/lib/types";
@@ -11,6 +12,7 @@ type MessageListProps = {
   messages: ChatMessage[];
   currentUserId: string;
   emptyLabel?: string;
+  loading?: boolean;
   className?: string;
 };
 
@@ -51,6 +53,7 @@ export function MessageList({
   messages,
   currentUserId,
   emptyLabel = "Select a thread to view messages",
+  loading = false,
   className,
 }: MessageListProps) {
   return (
@@ -60,7 +63,11 @@ export function MessageList({
         className
       )}
     >
-      {messages.length === 0 ? (
+      {loading ? (
+        <div className="flex min-h-[inherit] items-center justify-center py-12">
+          <LoadingSpinner size="md" label="Loading messages" />
+        </div>
+      ) : messages.length === 0 ? (
         <p className="text-sm text-muted-foreground">{emptyLabel}</p>
       ) : (
         messages.map((msg) => {

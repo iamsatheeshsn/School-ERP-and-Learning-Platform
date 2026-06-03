@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/shared/data-table";
-import { Badge } from "@/components/ui/badge";
+import { InvoiceStatusBadge } from "@/components/shared/invoice-status-badge";
 
 export type InvoiceRow = {
   id: string;
@@ -24,13 +24,7 @@ const columns: ColumnDef<InvoiceRow>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => (
-      <Badge
-        variant={row.original.status === "PAID" ? "default" : "secondary"}
-      >
-        {row.original.status}
-      </Badge>
-    ),
+    cell: ({ row }) => <InvoiceStatusBadge status={row.original.status} />,
   },
   { accessorKey: "dueDate", header: "Due Date" },
 ];

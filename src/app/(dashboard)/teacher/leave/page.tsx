@@ -18,6 +18,11 @@ export default async function TeacherLeavePage() {
         title="Leave"
         description="Submit leave requests for admin approval."
       />
+
+      {!result.success && (
+        <p className="text-sm text-destructive">{result.error}</p>
+      )}
+
       <LeaveRequestForm requests={requests} />
     </div>
   );

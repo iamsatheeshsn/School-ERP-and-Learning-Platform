@@ -31,15 +31,19 @@ export default async function TeacherExamsPage() {
         description="Enter marks for scheduled exams in your classes."
       />
 
-      {exams.length === 0 ? (
+      {!result.success && (
+        <p className="text-sm text-destructive">{result.error}</p>
+      )}
+
+      {result.success && exams.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
           title="No exams scheduled"
           description="Your admin will schedule exams for your classes."
         />
-      ) : (
+      ) : result.success ? (
         <TeacherExamsList exams={exams} />
-      )}
+      ) : null}
     </div>
   );
 }
